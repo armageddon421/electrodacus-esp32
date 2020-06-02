@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ElectroDacus</title>
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+<meta http-equiv='refresh' content='3'>
+<style media='screen' type='text/css'>
+
+meter {-webkit-appearance:none;-moz-appearance:none;appearance:none;width:180px;height:12px;position:absolute;left:10px;box-shadow:1px 2px 3px #ec6;}
+.bar{position:absolute;bottom:0px;display:inline-block;}
+mx1{border:1px solid #fff;color:#fff;padding:0px 3px}
+mn1{border:1px solid #fe9;color:#fe9;padding:0px 3px}
+Val{color:#fed;}
+txt{color:#a99;}
+V5{color:#000;white-space:pre;}
+v0{background:#fc4;}
+v1{background:#e6a;}
+v3{background:#0f0;}
+v4{background:#f00;}
+v6{background:#01f;}
+v7{background:#e9f;}
+v10{background:#f73;}
+lt{background: #fa6;}
+div{position: relative;float:left;}
+div2{position: absolute;color:#fed;line-height: 21px;}
+div3{position: relative;height:180px; width:720px;float:left;font-family:Arial,serif;font-weight: bold;font-size:18px;}
+div33{position: relative;height:200px; width:720px;float:left;font-family:Arial,serif;font-weight: bold;font-size:18px;}
+div34{position: relative;height:200px; width:720px;float:left;font-family:Arial,serif;font-weight: bold;font-size:18px;}
+div12h{position:absolute;width: 359px;height: 160px;left:0px;color:#300;background: rgba(40,20,0,0.5);}
+div1h{position:absolute;width: 179px;height: 160px;left:360px;color:#300;background: rgba(120,90,0,0.6);}
+div1m{position:absolute;width: 180px;height: 160px;left:540px;color:#300;background: rgba(30,70,0,0.5);}
+div4{position:absolute;width: 236px;height: 22px;bottom:9px;color:#211;background: rgba(255,185,130,1);}
+div5{position:absolute;background: rgba(150,100,80,0.4);}
+div6{position:absolute;background: rgba(120,100,100,0.3);}
+button{color:#b50;}
+</style>
+</head>
+<body style='background: #000;' >
+<div3 style='height: 135px;'>
+<canvas id='Lg' width='70' height='120' style='position:relative; top:11px; left:12px; z-index:2; float: left;'></canvas>
+<div2 style='top:12px; left:360px; color:rgba(255,185,130,1);text-shadow:-1px -2px 1px rgba(255,240,220,1),2px 2px 3px rgba(250,170,140,0.9);font-size:40px;' id='id'></div2>
+<div2 style='width:350px; top:82px; left:90px; color:#be5;float:none;'><div >www.ElectroDacus.com</div>
+<div style='color:transparent; -webkit-transform: rotateX(180deg);transform: rotateX(180deg);-ms-transform:rotateX(180deg); text-shadow: 0px 0px 1px #371;'>www.ElectroDacus.com</div></div2>
+<div2 id="demo"></div2>
+<div2 style='width:350px; top:82px; left:520px;'><button  onclick="dload('sbms.txt', localStorage['sbms']);">Save log</button><button onclick="localStorage.removeItem('sbms');localStorage['sbms'] ='';">Clear log</button></div2>
+<div2 style='left:620px;color:#99f;top: 2px;'id='d25'></div2>
+
+</div3>
+<div3>
+<meter id='bat' style='height: 70px; width: 320px; top: 9px;' min='0' low='20' max='100'></meter>
+<meter style='height: 50px; left: 332px; top:18px; width: 15px;' min='2' max='8' value='0'></meter>
+<div2 style='color:#030;font-size:48px;top:35px;left:120px;text-shadow: -2px -2px 2px #efc;' id='SOC' ></div2>
+<div2 style='left:360px;color:#ea8;' id='d2'></div2>
+<div2 style='left:430px;' id='d3'></div2>
+<div2 style='left:490px;color:#888;' id='d4'></div2>
+<div2 style='left:5px;top:92px;color:#a99;line-height: 25px;' id='d12'></div2>
+<div style='left:510px;' id='mt1'></div> 
+</div3>
+
+<div33>
+
+<div6 style='width: 718px;bottom:138px;height:20px;'id='d25'></div6>
+<div6 style='width: 718px;bottom:96px;height:20px;'id='d25'></div6>
+<div6 style='width: 718px;bottom:54px;height:20px;'id='d25'></div6>
+<div6 style='width: 90px;bottom:32px;height:146px;'id='d25'></div6>
+<div2 style='left:5px;color:#ea8;top: 22px;'id='d6'></div2>
+<div2 style='right:530px;text-align: right;'id='d7'></div2>
+<div2 style='right:430px;text-align: right;'id='d8'></div2>
+<div2 style='right:220px;text-align: right;'id='d9'></div2>
+<div2 style='right:10px;text-align: right;'id='d10'></div2>
+<div5 style='width: 718px;top:0px;height:22px;text-align: right;'id='d11'></div5>
+<div4 id='mo0'>PV1 & PV2</div4>
+<div4 id='mo2' style='left:241px;'>Battery</div4>
+<div4 id='mo1' style='left:482px;'>Load</div4>
+</div33>
+
+<div34>
+
+
+
+<div6 style='width: 718px;bottom:138px;height:20px;'id='d25'></div6>
+<div6 style='width: 718px;bottom:96px;height:20px;'id='d25'></div6>
+<div6 style='width: 718px;bottom:54px;height:20px;'id='d25'></div6>
+<div6 style='width: 50px;bottom:10px;height:168px;'id='d25'></div6>
+<div2 style='left:5px; color:#ea8;top: 22px;'id='d14'></div2>
+<div2 style='right:590px;text-align: right;'id='d15'></div2>
+<div2 style='right:500px;text-align: right;'id='d16'></div2>
+<div2 style='right:360px;text-align: right;'id='d17'></div2>
+<div2 style='right:270px;text-align: right;'id='d18'></div2>
+<div2 style='left:500px;top:20px;color:#a99;line-height: 21px;' id='d13'></div2>
+<div2 style='left:640px;top:20px;color:#fed;line-height: 21px;text-align: right;' id='d23'></div2>
+<div2 style='right:5px;top:20px;color:#a99;line-height: 21px;' id='d24'></div2>
+<div5 style='width: 718px;top:0px;height:22px;text-align: right;'id='d25'></div5>
+<div5 style='width: 718px;bottom:8px;height:2px;text-align: right;'id='d25'></div5>
+<div5 style='width: 718px;bottom:49px;height:2px;text-align: right;'id='d25'></div5>
+
+</div34>
+
+
+<div3><div style='background: #fb9;width: 720px;height:25px;'></div><div12h id='g0'></div12h><div1h id='g1'></div1h><div1m id='g2'></div1m><div id='ch0' style='width: 360px;height: 135px;'></div></div3>
+<div3><div style='background: #fb9;width: 720px;height:25px;'></div><div12h id='g3'></div12h><div1h id='g4'></div1h><div1m id='g5'></div1m><div id='ch1' style='width: 360px;height: 135px;' ></div></div3>
+<div3><div style='background: #fb9;width: 720px;height:25px;'></div><div12h id='g6'></div12h><div1h id='g7'></div1h><div1m id='g8'></div1m><div id='ch2' style='width: 360px;height: 135px;' ></div></div3>
+<div3><div style='background: #fb9;width: 720px;height:25px;'></div><div12h id='g9'></div12h><div1h id='g10'></div1h><div1m id='g11'></div1m><div id='ch3' style='width: 360px;height: 135px;' ></div></div3>
+
+
+
+<script id='smain2'>
+all();
+function all(){
+
+var PV1=sessionStorage['PV1'];
+var PV2=sessionStorage['PV2'];
+var Batp=sessionStorage['Batp'];
+var Batn=sessionStorage['Batn'];
+var Ld=sessionStorage['Ld'];
+var ELd=sessionStorage['ELd'];
+
+var sbms=localStorage['sbmsb'];
+var xsbms=localStorage['xsbms'];
+var gsbms=localStorage['gsbms'];
+var eA=localStorage['eA'];
+var eW=localStorage['eW'];
+var sbms2=JSON.parse(localStorage['sbms2']);
+var sbms1=['','Batt','PV1','PV2','ExtLd','PV1+PV2','Load','ExtLd','DMPPT',localStorage['cap'],localStorage['WA'],localStorage['model']];
+var dmppt1=['','1',' 2',' 3',' 4',' 5',' 6','','Sum:'];
+var lg1="#B33A33B##333333B##B33A33B##B33333B##B''''''##A44A544##B44444B##;75444A##144B444##B33333B##444444B##2331$$A##B8:B:8B#";
+var dmppt=localStorage['dmpptb'];
+
+var c = document.getElementById('Lg');
+var ctx = c.getContext('2d');
+var r ='</br>'
+
+
+
+function htm(id,s){document.getElementById(id).innerHTML =s;};
+function pad(n, width, z) {z=z || '0';n=n+'';return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;}
+function dcmp(p,s,d){xx=0; for (z=0;z<s;z++){xx = xx + ((d.charCodeAt((p+s-1)-z)-35)*Math.pow(91,z));}return xx;}
+function fN(nm){return nm.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 , ')}
+htm('id',sbms1[11]);
+var SOC='';SOC =dcmp(6,2,sbms);htm('SOC','<b>'+SOC+'%</b>');document.getElementById('bat').value=SOC;
+
+if (sbms2[10]!=1){mos(0);};if (sbms2[11]!=1){mos(1);};function mos(rr){document.getElementById('mo'+rr).style.background='rgba(120,90,0,0.7)';}
+
+
+
+
+if (dcmp(3*6,6,eA)==0||dcmp(3*6,6,eA)>=416000000000) { drawChart('PV1 ','PV2 ',0,PV1,PV2,'#ch0','#fc4','#e6a',1,2,200);}
+else 
+{
+drawChart('PV1+PV2','',0,PV1,"################################################################################################################################################################################################################################################",'#ch0','#fc4','#e6a',1,2,200);
+drawChart('',' DMPPT ',3,PV2,"################################################################################################################################################################################################################################################",'#ch3','#f73','#f73',1,2,200);
+}
+drawChart('Batp ','Batn ',1,Batp,Batn,'#ch1','#0f0','#f00',1,2,200);
+drawChart('Load','ExtLd',2,Ld,ELd,'#ch2','#01f','#e9f',1,2,200);
+
+
+
+
+for (i=0;i<15;i++){setInterval(function(){lg(lg1);},500*i);};
+
+function lg(d){
+var k = new Date();
+var n = k.getSeconds();
+if (n>=40){n=n-40};
+if (n>=20){n=n-20};
+if (n>12){n=12};
+ctx.clearRect(0, 0, 70, 120);
+for (y=0;y<9;y++){
+for (x=0;x<7;x++){
+var pix2=((pad(((d.charCodeAt(y+(12*9))-35).toString(2)),6)).charCodeAt(x))-48;
+var pix=((pad(((d.charCodeAt(y+(n*9))-35).toString(2)),6)).charCodeAt(x))-48;
+if (pix==1){col1='#be9';col2='rgba(142,204,104,0.'}
+else if (pix2==1){col1='#694';col2='rgba(66,104,44,0.'}
+else {col1='#361';col2='rgba(42,84,36,0.'}
+ctx.fillStyle =col1;
+ctx.fillRect(x*10, y*10, 8, 8);
+if(y>=6){ctx.fillStyle =col2+(((y*2)-2)-8)+')';ctx.fillRect(x*10, (17.3-y)*10, 8, 8);}
+}}}
+
+function drawChart(n,m,k,d1,d2,sl,cl,cl2,p,b,bt)
+{
+var cht = document.querySelector(sl);
+var l=0;
+for (i=0;i<240;i++)
+{ 
+var h1=(((dcmp(i,1,d1))/180)*bt);
+var h2=(((dcmp(i,1,d2))/180)*bt);
+var f2 = document.createElement('div');
+var f = document.createElement('div');
+var f3 = document.createElement('div');
+f.setAttribute('class', 'bar');
+f2.setAttribute('class', 'bar');
+f3.setAttribute('class', 'bar');
+f.style.background=cl;
+f2.style.background=cl2;
+f3.style.background='#322';
+f.style.width=b+'px';
+f2.style.width=b+'px';
+f3.style.width=b+'px';
+f.style.height=h1+'%';
+f2.style.height=h2+'%';
+f3.style.height=(100-(h1+h2))+'%';
+f.style.left=l+'px';
+f2.style.left=l+'px';
+f3.style.left=l+'px';
+f2.style.bottom=h1+'%';
+f3.style.bottom=h2+h1+'%';
+cht.appendChild(f);
+cht.appendChild(f2);
+cht.appendChild(f3);
+l += (b+p);	
+}
+k=k*3;
+var sp='        ';
+var dd=3;ss=1000;b0='12h'+sp;
+if (sbms1[10]=='W'){dd=1;ss=10};
+
+for (i=0;i<3;i++){if (i==1){n=m='';b0='1h';}if (i==2){n=m='';b0='1m';}htm('g'+(k+i),'<V5> '+b0+'<v'+(k)+'>'+n+'</v'+(k)+'><v'+(k+1)+'>'+m+'</v'+(k+1)+'>'+sp+(dcmp((k+i)*3,3,gsbms)/ss).toFixed(dd)+sbms1[10]+'</V5>');}}
+
+
+mt8('#mt1');
+function mt8(m1) {
+var w = new Array();
+for (i=0;i<30;i++){w[i]='';}
+var bv=pv3=sv=max1=min1=0;
+for (x1=0;x1<8;x1++)
+{
+var n=n1='';   
+var cv=dcmp((x1*2)+8,2,sbms)/1000;
+var cv2=dcmp((x1*2)+8,2,sbms)
+var cvmin=dcmp(5,2,xsbms);
+var cvmax=dcmp(3,2,xsbms);
+if (sbms2[9]==x1+1){min1=cv;n='<mn1>';n1='</mn1>';};
+if (sbms2[8]==x1+1){max1=cv;n='<mx1>';n1='</mx1>';};
+w[0] +=n+'Cell. '+ (x1+1)+n1+r ;
+w[1] +=n+cv.toFixed(3)+n1+r;
+if (sbms2[x1]!=1){w[2] +='<txt>V</txt>'+r;}
+else {w[2] +='<lt><</lt>'+r;};
+bv +=cv;
+var mt = document.querySelector(m1);
+var x = document.createElement('div');
+var xx2 = document.createElement('div');
+var xx = document.createElement('div');
+x.setAttribute('class', 'bar');
+x.style.background='rgba(100,140,100,0.7)';
+x.style.left="3px";
+x.style.width=((cv2-cvmin)/((cvmax-cvmin)/200))+'px';
+x.style.height='12px'
+x.style.top=((x1*21)+3)+'px';
+xx2.setAttribute('class', 'bar');
+xx2.style.background='rgba(200,255,160,0.9)';
+xx2.style.left="2px";
+xx2.style.width=((cv2-cvmin)/((cvmax-cvmin)/200))+'px';
+xx2.style.height='14px';
+xx2.style.top=((x1*21)+2)+'px';
+xx.setAttribute('class', 'bar');
+xx.style.background='rgba(40,55,36,1)';
+xx.style.width='206px';
+xx.style.height='18px';
+xx.style.top=((x1*21))+'px';
+mt.appendChild(xx);
+mt.appendChild(xx2);
+mt.appendChild(x);
+}
+for (i=2;i<5;i++){htm('d'+i,w[i-2]);}
+
+
+for (x1=0;x1<8;x1++)
+{
+var n2=w[8]=w[9]=w[10]=w[11]='';
+var cv=dcmp((x1*3)+29,3,sbms)/1000;
+var enW=dcmp(x1*6,6,eW);
+var enA=dcmp(x1*6,6,eA);
+if (x1==0){n2=sbms.charAt(28);w[8]='[A]'+r;w[9]='[W]'+r;w[10]='[MAh][kAh][Ah][mAh]'+r;w[11]='[MWh][kWh][Wh]'+r;};
+if (x1==1||x1==2){pv3 +=cv;};
+if (x1==3){sv=cv;}
+if (x1==4){cv=pv3;}
+if (x1==5){cv=dcmp(0,3,xsbms)/1000;}
+if (x1==6){cv=sv;}
+if (x1==7){cv=(dcmp(5,3,dmppt)+dcmp(8,3,dmppt)+dcmp(11,3,dmppt)+dcmp(14,3,dmppt)+dcmp(17,3,dmppt)+dcmp(20,3,dmppt))/1000;
+w[3] +=sbms1[x1+1]+r ;
+w[4] +=w[8]+n2+cv.toFixed(3)+r;
+w[5] +=w[9]+n2+(cv*(dcmp(1,3,dmppt)/1000)).toFixed(1)+r;
+w[6] +=w[10]+fN(dcmp(3*6,6,eA))+r;
+w[7] +=w[11]+fN(((dcmp(3*6,6,eW))/10).toFixed(1))+r;
+           }
+if(x1!=3 && x1!=7){
+w[3] +=sbms1[x1+1]+r ;
+w[4] +=w[8]+n2+cv.toFixed(3)+r;
+w[5] +=w[9]+n2+(cv*bv).toFixed(1)+r;
+w[6] +=w[10]+fN(enA)+r;
+w[7] +=w[11]+fN((enW/10).toFixed(1))+r;
+                   }
+} 
+for (i=6;i<11;i++){htm('d'+i,w[i-3]);}
+
+htm('d'+12,'Type: '+ dcmp(7,1,xsbms)+ ' Cap: '+dcmp(8,3,xsbms)+sbms1[9]+' Status: '+dcmp(56,3,sbms)+r+'SBMS Temp Int: '+ ((dcmp(24,2,sbms)/10)-45).toFixed(1)+'&#8451 Ext: '+ ((dcmp(26,2,sbms)/10)-45).toFixed(1)+'&#8451'+r+'BattVoltage <Val>'+ bv.toFixed(3)+'</Val> V Cell &#916 <Val>'+((max1-min1)*1000).toFixed(0)+'</Val> mV');
+htm('d'+13,'  DMPPTV'+r+' PV1OUT'+r+'PV2OUT'+r+'Temp235'+r+'Temp146'+r+'IntTemp'+r+r+'DMPPT v'+(dcmp(0,1,dmppt)/10).toFixed(1));
+htm('d'+23,(dcmp(1,3,dmppt)/1000).toFixed(3)+r+(dcmp(23,3,dmppt)/1000).toFixed(3)+r+(dcmp(26,3,dmppt)/1000).toFixed(3)+r+((dcmp(50,2,dmppt)-450)/10).toFixed(1)+r+((dcmp(52,2,dmppt)-450)/10).toFixed(1)+r+(dcmp(48,2,dmppt)-40));
+htm('d'+24,'V'+r+'A'+r+'A'+r+'C'+r+'C'+r+'C');
+htm('d'+25,dcmp(2,1,sbms)+' / '+dcmp(1,1,sbms)+' / '+dcmp(0,1,sbms)+r+dcmp(3,1,sbms)+':'+("0" + (dcmp(4,1,sbms))).slice (-2));
+
+for (x1=0;x1<8;x1++)
+{
+var n3=w[19]=w[20]=w[21]=w[22]=w[25]='';
+var cv=dcmp((x1*3)+5,3,dmppt)/1000;
+var tv=dcmp((x1*3)+30,3,dmppt)/10;
+var enW=dcmp(x1*6,6,eW);
+var enA=dcmp(x1*6,6,eA);
+var vv=dcmp(1,3,dmppt)/1000;
+if (x1==0){n3='';w[19]='TPV [A]'+r;w[20]='[W]'+r;w[21]='TLD [A]'+r;w[22]='[W]'+r;};
+if (x1==1){};
+if (x1==2){}
+if (x1==3){}
+if (x1==4){}
+if (x1==5){}
+if (x1==6){}
+if (x1==7){cv=(dcmp(5,3,dmppt)+dcmp(5+3,3,dmppt)+dcmp(5+6,3,dmppt)+dcmp(5+9,3,dmppt)+dcmp(5+12,3,dmppt)+dcmp(5+15,3,dmppt))/1000;}
+if(x1==6){w[14]+=''+r;w[15]+=''+r;w[16]+=''+r;w[17]+=''+r;w[18]+=''+r;}
+else if (x1==7){w[14]+=dmppt1[x1+1]+r;w[15]+=w[19]+n3+cv.toFixed(3)+r;w[16]+=w[20]+n3+(cv*vv).toFixed(1)+r;w[17]+=''+r;w[18]+=''+r;}
+else {
+w[14] +=dmppt1[x1+1]+r ;
+w[15] +=w[19]+n3+cv.toFixed(3)+r;
+w[16] +=w[20]+n3+(cv*vv).toFixed(1)+r;
+if (vv>1) {w[17] +=w[21]+n3+(tv/vv).toFixed(3)+r;}
+else {w[17] +=w[21]+n3+(0).toFixed(3)+r;}
+w[18] +=w[22]+n3+tv.toFixed(1)+r;
+}
+          
+}
+for (i=14;i<22;i++){htm('d'+i,w[i]);}
+
+
+
+}
+
+
+
+}
+function dload(n,t) {
+var pom = document.createElement('a');
+pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(t));
+pom.setAttribute('download', n);
+if (document.createEvent) {var event = document.createEvent('MouseEvents');event.initEvent('click', true, true);pom.dispatchEvent(event);}
+else {pom.click();}}
+//http://192.168.4.1/
+
+</script>
+
+<script type="text/javascript" src="http://192.168.4.1/"></script>
+<script>
+sessionStorage['PV1']=PV1;
+sessionStorage['PV2']=PV2;
+sessionStorage['Batp']=Btp;
+sessionStorage['Batn']=Btn;
+sessionStorage['Ld']=Ld;
+sessionStorage['ELd']=ELd;
+
+localStorage['sbmsb']=sbms;
+localStorage['xsbms']=xsbms;
+localStorage['gsbms']=gsbms;
+localStorage['eA']=eA;
+localStorage['eW']=eW;
+localStorage['cap']=s1[0];
+localStorage['WA']=s1[1];
+localStorage['model']=s1[2];
+localStorage['sbms2']=JSON.stringify(s2);
+localStorage['dmpptb']=dmppt;
+localStorage['sbms'] =localStorage['sbms']+sbms+dmppt+'\n';
+
+all();
+</script>
+
+</body  >
+</html>
