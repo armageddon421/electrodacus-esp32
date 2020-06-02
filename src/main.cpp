@@ -158,7 +158,7 @@ void setup()
 
 
   server.on("/rawData", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send(SPIFFS, "/web/settings.html");
+        request->send(SPIFFS, "/testdata");
     });
 
 
@@ -197,6 +197,7 @@ void loop()
 
   if(wifiSettingsChanged) {
     wifiSettingsChanged = false;
+    lastWiFiTime = t;
     updateWifiState();
   }
 
