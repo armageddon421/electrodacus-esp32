@@ -24,7 +24,9 @@ public:
     uint32_t extLoadCurrentMA;
     uint32_t ad2;
     uint32_t ad3;
-    //ht1, ht2
+    uint32_t ad4;
+    uint16_t heat1;
+    uint16_t heat2;
     uint16_t flags;
 
 

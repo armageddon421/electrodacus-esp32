@@ -31,11 +31,12 @@ SbmsData::SbmsData(String dataString)
     extLoadCurrentMA = decompress(data, i, 3);
     ad2 = decompress(data, i, 3);
     ad3 = decompress(data, i, 3);
+    ad4 = decompress(data, i, 3);
 
-    //skip ht1 and ht2
-    i += 6;
+    heat1 = decompress(data, i, 3);
+    heat2 = decompress(data, i, 3);
 
-    flags = decompress(data, i, 2);
+    flags = decompress(data, i, 3);
 }
 
 uint32_t SbmsData::decompress(const char *data, uint16_t &offset, uint8_t size)
