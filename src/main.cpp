@@ -1,3 +1,11 @@
+//travis version handling
+#ifndef VER_COMMIT
+    #define VER_COMMIT "NO COMMIT"
+#endif
+#ifndef VER_TAG
+    #define VER_TAG "NO TAG"
+#endif
+
 #include <Arduino.h>
 
 #include <WiFi.h>
@@ -22,6 +30,13 @@ String s_password = "";
 bool ap_fallback = false;
 unsigned long lastWiFiTime = 0;
 bool wifiSettingsChanged = false;
+
+String templateVersion(const String& var)
+{
+  if(var == "VERSION")
+    return F(VER_TAG VER_COMMIT);
+  return String();
+}
 
 void notFound(AsyncWebServerRequest *request) {
     request->send(404, "text/plain", "Not found");
@@ -107,7 +122,7 @@ void setup()
     });
 
   server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send(SPIFFS, "/web/index.html");
+        request->send(SPIFFS, "/web/index.html", String(), false, templateVersion);
     });
 
   server.on("/sbms.html", HTTP_GET, [](AsyncWebServerRequest *request){
