@@ -39,8 +39,6 @@ install:
     - pip install -U platformio
     - platformio update
     
-env:
-    - PLATFORMIO_BUILD_FLAGS="-D VERSION=\"$TRAVIS_TAG - $TRAVIS_COMMIT\""
 
 script:
     - platformio run
