@@ -21,6 +21,7 @@
 
 //local libraries
 #include "jsvarStore.hpp"
+#include "sbmsData.hpp"
 
 // Set LED_BUILTIN if it is not defined by Arduino framework
 // #define LED_BUILTIN 2
@@ -246,7 +247,16 @@ void loop()
   }
 
 
-  varStore.update();
+  String parsed = varStore.update();
+  if(parsed.length() > 0)
+  {
+    if(parsed == "sbms") //this guarantees the variable is stored in the varStore so we can get it
+    {
+      auto sbms = SbmsData(varStore.getVar("sbms"));
+
+      //Serial.printf("%02d-%02d-%02d %02d:%02d:%02d %3d%% C1: %dmV, C2: %dmV, %.1fC\r\n", sbms.year, sbms.month, sbms.day, sbms.hour, sbms.minute, sbms.second, sbms.stateOfChargePercent, sbms.cellVoltageMV[0], sbms.cellVoltageMV[1], sbms.temperatureInternalTenthC/10.0f);
+    }
+  }
   
 
 }
