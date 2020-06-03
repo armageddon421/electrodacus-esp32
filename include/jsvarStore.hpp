@@ -10,7 +10,7 @@ class JsvarStore {
 public:
     JsvarStore(Stream &stream);
 
-    //updates with new data from stream. Returns true if anything was received.
+    //updates with new data from stream. Returns true if one or more variables were sucessfully parsed.
     bool update();
 
     //returns all vars in the source formatting

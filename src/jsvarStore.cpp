@@ -1,5 +1,8 @@
 #include "jsvarStore.hpp"
 
+//include for yield on esp32
+#include <esp32-hal.h>
+
 JsvarStore::JsvarStore(Stream &stream)
     : mStream(stream)
     , mState(0)
@@ -10,6 +13,7 @@ JsvarStore::JsvarStore(Stream &stream)
 
 bool JsvarStore::update()
 {
+    bool retval = false;
     while(mStream.available())
     {
         char c = mStream.read();
@@ -85,15 +89,19 @@ bool JsvarStore::update()
             if(c == ';') //line was valid, commit
             {
                 mVars.insert(std::pair<String,String>(String(mVarName), String(mVarContent))); //insert/update in our stored data
+                retval = true;
                 reset();
             }
             else //error case
             {
                 reset();
             }
+
+            yield(); //yield at least after every line
         }
 
     }
+    return retval;
 }
 
 
