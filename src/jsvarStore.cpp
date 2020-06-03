@@ -50,23 +50,25 @@ bool JsvarStore::update()
                 reset();
             }
         }
-        else if(mState == 2) //expect a quotation mark
+        else if(mState == 2) //expect a quotation mark or a [
         {
-            if(c == '\"')
+            if(c == '\"' || c == '[')
             {
                 mState = 3;
+                mVarContent += c;
             }
             else //error case
             {
                 reset();
             }
         }
-        else if(mState == 3) //parse content until '\"'
+        else if(mState == 3) //parse content until '\"' or ']'
         {
-            if(c == '\"') //end of content
+            if((c == '\"' && mVarContent.charAt(0) == '\"') || (c == ']' && mVarContent.charAt(0) == '[')) //end of content
             {
                 mState = 4;
                 mCounter = 0;
+                mVarContent += c;
             }
             else if(mCounter < 300) //max content length is 300
             {
@@ -102,7 +104,7 @@ String JsvarStore::dumpVars() const
     while(it != mVars.cend())
     {
         //reconstruct the original line syntax
-        dump += "var " + it->first + "=\"" + it->second + "\";\r\n";
+        dump += "var " + it->first + "=" + it->second + ";\r\n";
 
         ++it;
     }
