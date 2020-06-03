@@ -11,9 +11,8 @@ JsvarStore::JsvarStore(Stream &stream)
 
 }
 
-bool JsvarStore::update()
+String JsvarStore::update()
 {
-    bool retval = false;
     while(mStream.available())
     {
         char c = mStream.read();
@@ -88,20 +87,28 @@ bool JsvarStore::update()
         {
             if(c == ';') //line was valid, commit
             {
-                mVars.insert(std::pair<String,String>(String(mVarName), String(mVarContent))); //insert/update in our stored data
-                retval = true;
+                auto var = mVars.find(mVarName);
+                if(var == mVars.end())
+                {
+                    mVars.insert(std::pair<String,String>(String(mVarName), String(mVarContent))); //insert in our stored data
+                }
+                else
+                {
+                    var->second = String(mVarContent);
+                }
+                
+                String varName = String(mVarName);
                 reset();
+                return varName;
             }
             else //error case
             {
                 reset();
             }
-
-            yield(); //yield at least after every line
         }
 
     }
-    return retval;
+    return String();
 }
 
 

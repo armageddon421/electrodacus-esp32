@@ -10,8 +10,8 @@ class JsvarStore {
 public:
     JsvarStore(Stream &stream);
 
-    //updates with new data from stream. Returns true if one or more variables were sucessfully parsed.
-    bool update();
+    //updates with new data from stream. Parses at most one variable before returning. Returns the name of the parsed variable.
+    String update();
 
     //returns all vars in the source formatting
     String dumpVars() const;
