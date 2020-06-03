@@ -1,16 +1,8 @@
 //travis version handling
-#ifndef VER_COMMIT
-    #define VER_COMMIT "NO COMMIT"
+#ifndef VERSION
+    #define VERSION "undefined version"
 #endif
-#ifndef VER_TAG
-    #define VER_TAG "NO TAG"
-#endif
-#if VER_COMMIT==""
-    #define VER_COMMIT "NO COMMIT"
-#endif
-#ifn VER_TAG==""
-    #define VER_TAG "NO TAG"
-#endif
+
 
 #include <Arduino.h>
 
@@ -40,7 +32,7 @@ bool wifiSettingsChanged = false;
 String templateVersion(const String& var)
 {
   if(var == "VERSION")
-    return F(VER_TAG " - " VER_COMMIT);
+    return F(VERSION);
   return String();
 }
 
