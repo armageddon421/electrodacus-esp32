@@ -182,7 +182,7 @@ void setup()
 
 
   server.on("/rawData", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send(200, "application/javascript", varStore.dumpVars());
+        request->send(200, "text/javascript", varStore.dumpVars());
     });
   
   server.on("/dummyData", HTTP_GET, [](AsyncWebServerRequest *request){
