@@ -40,7 +40,7 @@ install:
     - platformio update
     
 env:
-    - PLATFORMIO_BUILD_FLAGS="-D VER_COMMIT=\"$TRAVIS_COMMIT\" -D VER_TAG=\"$TRAVIS_TAG\""
+    - PLATFORMIO_BUILD_FLAGS="-D VERSION=\"$TRAVIS_TAG - $TRAVIS_COMMIT\""
 
 script:
     - platformio run
