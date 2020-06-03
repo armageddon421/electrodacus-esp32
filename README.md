@@ -70,5 +70,7 @@ RAM:   [=         ]  13.5% (used 44224 bytes from 327680 bytes)
 Flash: [=======   ]  74.3% (used 973461 bytes from 1310720 bytes)
 ```
 4. Flash! Platformio will usually find the right serial port to use automatically.
-`platformio run --target upload`
+```
+platformio run --target upload --target uploadfs
+```
 5. After the process is finished, replug your USB (or power supply) to reboot the ESP32. That should be it.
