@@ -19,10 +19,17 @@
 //file system
 #include <SPIFFS.h>
 
+//local libraries
+#include "jsvarStore.hpp"
+
 // Set LED_BUILTIN if it is not defined by Arduino framework
 // #define LED_BUILTIN 2
 
+//instances
 AsyncWebServer server(80);
+
+JsvarStore varStore(Serial);
+
 
 bool s_sta_enabled = false;
 String s_hostname = "SBMS";
@@ -175,6 +182,10 @@ void setup()
 
 
   server.on("/rawData", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(200, "application/javascript", varStore.dumpVars());
+    });
+  
+  server.on("/dummyData", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send(SPIFFS, "/testdata");
     });
 
@@ -233,6 +244,9 @@ void loop()
     ap_fallback = true;
     updateWifiState();
   }
+
+
+  varStore.update();
   
 
 }
