@@ -30,7 +30,7 @@ You need a USB to Serial/UART converter with an interface level of 3.3V. **5V wi
 
 ## Procedure
 
-![Connections](https://raw.githubusercontent.com/armageddon421/electrodacus-esp32/master/documentation/connections1.png)
+![Connections](documentation/connections1.png)
 
 The basic procedure is as follows:
 1. Disconnect the WiFi shield with the ESP32 module from your SBMS. To be safe, unplug the SBMS completely before doing that.
