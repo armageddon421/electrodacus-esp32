@@ -40,7 +40,7 @@ bool wifiSettingsChanged = false;
 String templateVersion(const String& var)
 {
   if(var == "VERSION")
-    return F(VER_TAG VER_COMMIT);
+    return F(VER_TAG " - " VER_COMMIT);
   return String();
 }
 
