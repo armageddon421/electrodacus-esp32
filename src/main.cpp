@@ -3,6 +3,10 @@
     #define VERSION "undefined version"
 #endif
 
+#define STRINGIFY(x) #x
+#define TOSTR(x) STRINGIFY(x)
+#define VERSION_STR TOSTR(VERSION)
+
 
 #include <Arduino.h>
 
@@ -32,7 +36,7 @@ bool wifiSettingsChanged = false;
 String templateVersion(const String& var)
 {
   if(var == "VERSION")
-    return F(VERSION);
+    return F(VERSION_STR);
   return String();
 }
 
