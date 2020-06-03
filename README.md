@@ -48,14 +48,22 @@ As soon as OTA is in place, consecutive updates will be far less painful.
 Open a terminal or cmd window.
 
 1. Clone the repository by either downloading the zip file manually or running:
-`git clone https://github.com/armageddon421/electrodacus-esp32.git`
+```
+git clone https://github.com/armageddon421/electrodacus-esp32.git
+```
 And enter the directory
-`cd electrodacus-esp32`
+```
+cd electrodacus-esp32
+```
 2. Install PlatformIO
-`pip install -U platformio`
-`platformio update`
+```
+pip install -U platformio
+platformio update
+```
 3. Compile the code. Platformio will automatically install any missing dependancies. Check for any errors.
-`platformio run`
+```
+platformio run
+```
 If all goes well, you should see memory usage bars like these and a line below that reading [SUCCESS] in the middle.
 ```
 RAM:   [=         ]  13.5% (used 44224 bytes from 327680 bytes)
