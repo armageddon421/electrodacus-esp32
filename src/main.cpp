@@ -210,6 +210,8 @@ void loop()
 
   if(wifiSettingsChanged) {
     wifiSettingsChanged = false;
+    lastWiFiTime = t + 5000; //give it a little extra time
+    ap_fallback = false;
     updateWifiState();
   }
 
