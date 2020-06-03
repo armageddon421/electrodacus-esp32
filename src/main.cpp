@@ -1,3 +1,9 @@
+//travis version handling
+#ifndef VERSION
+    #define VERSION "undefined version"
+#endif
+
+
 #include <Arduino.h>
 
 #include <WiFi.h>
@@ -22,6 +28,13 @@ String s_password = "";
 bool ap_fallback = false;
 unsigned long lastWiFiTime = 0;
 bool wifiSettingsChanged = false;
+
+String templateVersion(const String& var)
+{
+  if(var == "VERSION")
+    return F(VERSION);
+  return String();
+}
 
 void notFound(AsyncWebServerRequest *request) {
     request->send(404, "text/plain", "Not found");
@@ -107,7 +120,7 @@ void setup()
     });
 
   server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send(SPIFFS, "/web/index.html");
+        request->send(SPIFFS, "/web/index.html", String(), false, templateVersion);
     });
 
   server.on("/sbms.html", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -197,7 +210,8 @@ void loop()
 
   if(wifiSettingsChanged) {
     wifiSettingsChanged = false;
-    lastWiFiTime = t;
+    lastWiFiTime = t + 5000; //give it a little extra time
+    ap_fallback = false;
     updateWifiState();
   }
 
