@@ -5,6 +5,12 @@
 #ifndef VER_TAG
     #define VER_TAG "NO TAG"
 #endif
+#if VER_COMMIT==""
+    #define VER_COMMIT "NO COMMIT"
+#endif
+#ifn VER_TAG==""
+    #define VER_TAG "NO TAG"
+#endif
 
 #include <Arduino.h>
 
