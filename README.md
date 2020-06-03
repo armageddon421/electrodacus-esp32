@@ -30,7 +30,7 @@ You need a USB to Serial/UART converter with an interface level of 3.3V. **5V wi
 
 ## Procedure
 
-![Connections](https://raw.githubusercontent.com/armageddon421/electrodacus-esp32/master/documentation/connections1.png)
+![Connections](documentation/connections1.png)
 
 The basic procedure is as follows:
 1. Disconnect the WiFi shield with the ESP32 module from your SBMS. To be safe, unplug the SBMS completely before doing that.
@@ -48,19 +48,29 @@ As soon as OTA is in place, consecutive updates will be far less painful.
 Open a terminal or cmd window.
 
 1. Clone the repository by either downloading the zip file manually or running:
-`git clone https://github.com/armageddon421/electrodacus-esp32.git`
+```
+git clone https://github.com/armageddon421/electrodacus-esp32.git
+```
 And enter the directory
-`cd electrodacus-esp32`
+```
+cd electrodacus-esp32
+```
 2. Install PlatformIO
-`pip install -U platformio`
-`platformio update`
+```
+pip install -U platformio
+platformio update
+```
 3. Compile the code. Platformio will automatically install any missing dependancies. Check for any errors.
-`platformio run`
+```
+platformio run
+```
 If all goes well, you should see memory usage bars like these and a line below that reading [SUCCESS] in the middle.
 ```
 RAM:   [=         ]  13.5% (used 44224 bytes from 327680 bytes)
 Flash: [=======   ]  74.3% (used 973461 bytes from 1310720 bytes)
 ```
 4. Flash! Platformio will usually find the right serial port to use automatically.
-`platformio run --target upload`
+```
+platformio run --target upload --target uploadfs
+```
 5. After the process is finished, replug your USB (or power supply) to reboot the ESP32. That should be it.
