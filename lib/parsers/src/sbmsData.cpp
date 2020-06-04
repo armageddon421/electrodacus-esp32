@@ -39,6 +39,11 @@ SbmsData::SbmsData(String dataString)
     flags = decompress(data, i, 3);
 }
 
+bool SbmsData::getFlag(FlagBit bit) const
+{
+    return flags & (1<<bit);
+}
+
 uint32_t SbmsData::decompress(const char *data, uint16_t &offset, uint8_t size)
 {
     uint32_t xx=0;

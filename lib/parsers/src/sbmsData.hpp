@@ -29,6 +29,26 @@ public:
     uint16_t heat2;
     uint16_t flags;
 
+    enum FlagBit {
+        OV = 0,
+        OVLK = 1,
+        UV = 2,
+        UVLK = 3,
+        IOT = 4,
+        COC = 5,
+        DOC = 6,
+        DSC = 7,
+        CELF = 8,
+        OPEN = 9,
+        LVC = 10,
+        ECCF = 11,
+        CFET = 12,
+        EOC = 13,
+        DFET = 14
+    };
+
+    bool getFlag(FlagBit bit) const;
+
 
 protected:
 
