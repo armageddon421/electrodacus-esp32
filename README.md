@@ -38,7 +38,7 @@ The basic procedure is as follows:
 3. Make a temporary connection from the pin labelled IO0 to GND. This will bring the ESP32 into bootloader mode so you can flash the new firmware.
 4. Only now plug in your USB to Serial converter to your USB port (or power up your dedicated 3.3V source).
 5. Flash the firmware (see next section)
-6. Verify you can reach the device via WiFi. It should create an Access Point with a name starting with SBMS, followed by 12 characters representing a MAC-Address.
+6. Verify you can reach the device via WiFi. It should create an Access Point with a name starting with SBMS, followed by 12 characters representing a MAC-Address. The default password for that AP is "electrodacus" (without the quotes). Connect to it by going to 192.168.4.1 in your browser.
 7. Disconnect everything you just connected before plugging the WiFi module back onto your SBMS.
 
 As soon as OTA is in place, consecutive updates will be far less painful.
