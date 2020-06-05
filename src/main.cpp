@@ -140,6 +140,18 @@ String templateSettings(const String& var)
     return s_ssid;
   if(var == "wifi_pw")
     return s_password;
+  if(var == "mq_enabled")
+    return s_mq_enabled?"checked":String();
+  if(var == "mq_host")
+    return s_mq_host;
+  if(var == "mq_port")
+    return String(s_mq_port);
+  if(var == "mq_prefix")
+    return s_mq_prefix;
+  if(var == "mq_user")
+    return s_mq_user;
+  if(var == "mq_password")
+    return s_mq_password;
   return String();
 }
 

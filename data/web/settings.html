@@ -40,19 +40,19 @@ body {
         <h3>MQTT settings</h3>
         <form action="/sMqtt" method="post">
 
-            <input type="checkbox" id="mqEnable" name="mqEnable" value="%mq_enabled%"><br>
+            <input type="checkbox" id="mqEnable" name="mqEnable" %mq_enabled%>
             <label for="mqEnable">Enable MQTT</label><br>
 
             <label for="mqHost">MQTT host or IP</label><br>
             <input type="text" id="mqHost" name="mqHost" value="%mq_host%"><br>
 
             <label for="mqPort">port (default 1883)</label><br>
-            <input type="text" id="mqPort" name="mqPort" value="%mq_port%"><br>
+            <input type="number" min="0" max="65535" step="1" id="mqPort" name="mqPort" value="%mq_port%"><br>
 
             <label for="mqPrefix">MQTT Topic prefix</label><br>
             <input type="text" id="mqPrefix" name="mqPrefix" value="%mq_prefix%"><br>
-            <p>currently, only the topic "sbms" is published in JSON format. The prefix will be prepended to that: [prefix]sbms.
-                A prefix of "/"" will become "/sbms". You could do "/solar/battery/" to get "/solar/battery/sbms".
+            <p>currently, only the topic "sbms" is published. The data is in JSON format. The prefix will be prepended to that: [prefix]sbms.
+                A prefix of "/" will become "/sbms". You could do "/solar/battery/" to get "/solar/battery/sbms".
             </p>
 
             <label for="mqUser">Username (leave empty for no auth)</label><br>
