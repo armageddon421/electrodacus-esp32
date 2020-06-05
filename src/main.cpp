@@ -12,6 +12,9 @@
 
 #include <WiFi.h>
 
+//JSON includes
+#include <ArduinoJson.h>
+
 //web server includes
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
@@ -81,8 +84,24 @@ void writeWifiSettings(const char *hostname, const char *ssid, const char *pw)
 bool s_mq_enabled = false;
 String s_mq_host;
 uint32_t s_mq_port = 8883;
+String s_mq_prefix = "/";
 String s_mq_user;
 String s_mq_password;
+
+void readMqttSettings()
+{
+  auto sMqtt = SPIFFS.open("/sMqtt.txt"); //default mode is read
+
+  s_mq_enabled = sMqtt.readStringUntil('\r') == "1"; if(sMqtt.peek() == '\n') sMqtt.read();
+  s_mq_host = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
+  String portString = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
+  s_mq_port = atoi(portString.c_str());
+  s_mq_prefix = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
+  s_mq_user = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
+  s_mq_password = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
+
+  sMqtt.close();
+}
 
 
 //------------------------- TEMPLATES --------------------
@@ -146,6 +165,88 @@ void mqttUpdate()
   }
 }
 
+struct MqttJsonWriter {
+  // Writes one byte, returns the number of bytes written (0 or 1)
+  size_t write(uint8_t c)
+  {
+    return mqtt.write(c);
+  }
+  // Writes several bytes, returns the number of bytes written
+  size_t write(const uint8_t *buffer, size_t length){
+    return mqtt.write(buffer, min(length, (size_t)mqtt.getBufferSize())); 
+  }
+} mqttJsonWriter;
+
+void mqttPublishJson(const JsonDocument *doc, const String topic)
+{
+
+  mqtt.beginPublish((s_mq_prefix + "/" + topic).c_str(), measureJson(*doc), false);
+
+  serializeJson(*doc, mqttJsonWriter);
+
+  mqtt.endPublish();
+}
+
+void mqttPublishSBMS(const SbmsData &sbms)
+{
+  StaticJsonDocument<200> doc;
+
+  doc["time"]["year"] = sbms.year;
+  doc["time"]["month"] = sbms.month;
+  doc["time"]["day"] = sbms.day;
+  doc["time"]["hour"] = sbms.hour;
+  doc["time"]["minute"] = sbms.minute;
+  doc["time"]["second"] = sbms.second;
+  
+  doc["soc"] = sbms.stateOfChargePercent;
+
+  JsonArray volt = doc.createNestedArray("cellsMV");
+  for(uint8_t i=0; i<8; i++)
+  {
+    volt.add(sbms.cellVoltageMV[i]);
+  }
+
+  doc["tempInt"] = sbms.temperatureInternalTenthC / 10.0;
+  doc["tempExt"] = sbms.temperatureExternalTenthC / 10.0;
+
+  JsonObject curr = doc.createNestedObject("currentMA");
+
+  curr["battery"] = sbms.batteryCurrentMA;
+  curr["pv1"] = sbms.pv1CurrentMA;
+  curr["pv2"] = sbms.pv2CurrentMA;
+  curr["extLoad"] = sbms.extLoadCurrentMA;
+
+  doc["ad2"] = sbms.ad2;
+  doc["ad3"] = sbms.ad3;
+  doc["ad4"] = sbms.ad4;
+
+  doc["heat1"] = sbms.heat1;
+  doc["heat2"] = sbms.heat2;
+
+  JsonObject flags = doc.createNestedObject("flags");
+
+  flags["OV"] = sbms.getFlag(SbmsData::FlagBit::OV);
+  flags["OVLK"] = sbms.getFlag(SbmsData::FlagBit::OVLK);
+  flags["UV"] = sbms.getFlag(SbmsData::FlagBit::UV);
+  flags["UVLK"] = sbms.getFlag(SbmsData::FlagBit::UVLK);
+  flags["IOT"] = sbms.getFlag(SbmsData::FlagBit::IOT);
+  flags["COC"] = sbms.getFlag(SbmsData::FlagBit::COC);
+  flags["DOC"] = sbms.getFlag(SbmsData::FlagBit::DOC);
+  flags["DSC"] = sbms.getFlag(SbmsData::FlagBit::DSC);
+  flags["CELF"] = sbms.getFlag(SbmsData::FlagBit::CELF);
+  flags["OPEN"] = sbms.getFlag(SbmsData::FlagBit::OPEN);
+  flags["LVC"] = sbms.getFlag(SbmsData::FlagBit::LVC);
+  flags["ECCF"] = sbms.getFlag(SbmsData::FlagBit::ECCF);
+  flags["CFET"] = sbms.getFlag(SbmsData::FlagBit::CFET);
+  flags["EOC"] = sbms.getFlag(SbmsData::FlagBit::EOC);
+  flags["DFET"] = sbms.getFlag(SbmsData::FlagBit::DFET);
+
+  mqttPublishJson( &doc, "sbms");
+
+}
+
+
+//------------------------- WIFI --------------------
 
 void updateWifiState()
 {
@@ -199,6 +300,7 @@ void setup()
 
   readWifiSettings();
 
+  readMqttSettings();
   
 
 
@@ -361,24 +463,7 @@ void loop()
     {
       auto sbms = SbmsData(varStore.getVar("sbms"));
 
-      Serial.printf("%02d-%02d-%02d %02d:%02d:%02d %3d%% C1: %dmV, C2: %dmV, %.1fC\r\n", sbms.year, sbms.month, sbms.day, sbms.hour, sbms.minute, sbms.second, sbms.stateOfChargePercent, sbms.cellVoltageMV[0], sbms.cellVoltageMV[1], sbms.temperatureInternalTenthC/10.0f);
-      Serial.printf("%dmA, %dmA, %dmA, %dmA, %d, %d, flags: %d\r\n", sbms.batteryCurrentMA, sbms.pv1CurrentMA, sbms.pv2CurrentMA, sbms.extLoadCurrentMA, sbms.ad2, sbms.ad3, sbms.flags);
-
-      Serial.printf("OV: %d\r\n", sbms.getFlag(SbmsData::FlagBit::OV));
-      Serial.printf("OVLK: %d\r\n", sbms.getFlag(SbmsData::FlagBit::OVLK));
-      Serial.printf("UV: %d\r\n", sbms.getFlag(SbmsData::FlagBit::UV));
-      Serial.printf("UVLK: %d\r\n", sbms.getFlag(SbmsData::FlagBit::UVLK));
-      Serial.printf("IOT: %d\r\n", sbms.getFlag(SbmsData::FlagBit::IOT));
-      Serial.printf("COC: %d\r\n", sbms.getFlag(SbmsData::FlagBit::COC));
-      Serial.printf("DOC: %d\r\n", sbms.getFlag(SbmsData::FlagBit::DOC));
-      Serial.printf("DSC: %d\r\n", sbms.getFlag(SbmsData::FlagBit::DSC));
-      Serial.printf("CELF: %d\r\n", sbms.getFlag(SbmsData::FlagBit::CELF));
-      Serial.printf("OPEN: %d\r\n", sbms.getFlag(SbmsData::FlagBit::OPEN));
-      Serial.printf("LVC: %d\r\n", sbms.getFlag(SbmsData::FlagBit::LVC));
-      Serial.printf("ECCF: %d\r\n", sbms.getFlag(SbmsData::FlagBit::ECCF));
-      Serial.printf("CFET: %d\r\n", sbms.getFlag(SbmsData::FlagBit::CFET));
-      Serial.printf("EOC: %d\r\n", sbms.getFlag(SbmsData::FlagBit::EOC));
-      Serial.printf("DFET: %d\r\n", sbms.getFlag(SbmsData::FlagBit::DFET));
+      mqttPublishSBMS(sbms);
     }
   }
   
