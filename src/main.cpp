@@ -217,11 +217,9 @@ struct MqttJsonWriter {
     size_t written = 0;
     while(written < bufi)
     {
-
       size_t thisWrite = mqtt.write(buf + written, bufi - written);
       if(thisWrite == 0) return; //error, couldn't even write a single byte. Prevent infinite loop.
       written += thisWrite;
-      printf("flushed %d of %d bytes\n", written, bufi);
     }
 
     bufi = 0;
