@@ -17,15 +17,55 @@ body {
     <h1>ElectroDacus-esp32</h1>
     <h2>Settings</h2>
 
-    <form action="/sWifi" method="post">
-        <label for="hostname">Hostname (label for your device):</label><br>
-        <input type="text" id="hostname" name="hostname" value="%wifi_hostname%"><br>
-        <label for="ssid">SSID:</label><br>
-        <input type="text" id="ssid" name="ssid" value="%wifi_ssid%"><br>
-        <label for="pw">WiFi Password:</label><br>
-        <input type="password" id="pw" name="pw" value="%wifi_pw%"><br><br>
-        <input type="submit" value="Save">
-    </form>
+    <p>Note: Each section needs to be saved seperately. Changes take effect immediately, no reboot required.</p>
+
+    <div>
+        <h3>WiFi settings</h3>
+        <form action="/sWifi" method="post">
+
+            <label for="hostname">Hostname (label for your device)</label><br>
+            <input type="text" id="hostname" name="hostname" value="%wifi_hostname%"><br>
+
+            <label for="ssid">SSID</label><br>
+            <input type="text" id="ssid" name="ssid" value="%wifi_ssid%"><br>
+
+            <label for="pw">WiFi Password</label><br>
+            <input type="password" id="pw" name="pw" value="%wifi_pw%"><br><br>
+
+            <input type="submit" value="Save">
+        </form>
+    </div>
+
+    <div>
+        <h3>MQTT settings</h3>
+        <form action="/sMqtt" method="post">
+
+            <input type="checkbox" id="mqEnable" name="mqEnable" value="%mq_enabled%"><br>
+            <label for="mqEnable">Enable MQTT</label><br>
+
+            <label for="mqHost">MQTT host or IP</label><br>
+            <input type="text" id="mqHost" name="mqHost" value="%mq_host%"><br>
+
+            <label for="mqPort">port (default 1883)</label><br>
+            <input type="text" id="mqPort" name="mqPort" value="%mq_port%"><br>
+
+            <label for="mqPrefix">MQTT Topic prefix</label><br>
+            <input type="text" id="mqPrefix" name="mqPrefix" value="%mq_prefix%"><br>
+            <p>currently, only the topic "sbms" is published in JSON format. The prefix will be prepended to that: [prefix]sbms.
+                A prefix of "/"" will become "/sbms". You could do "/solar/battery/" to get "/solar/battery/sbms".
+            </p>
+
+            <label for="mqUser">Username (leave empty for no auth)</label><br>
+            <input type="text" id="mqUser" name="mqUser" value="%mq_user%"><br>
+
+            <label for="mqPassword">MQTT Password</label><br>
+            <input type="password" id="mqPassword" name="mqPassword" value="%mq_password%"><br><br>
+
+            <p>TLS support coming soon<sup>TM</sup></p>
+
+            <input type="submit" value="Save">
+        </form>
+    </div>
 
     <p><a href="settings.html">BACK</a></p>
 
