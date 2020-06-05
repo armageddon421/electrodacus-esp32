@@ -10,19 +10,22 @@ Firmware for the esp32 on the WiFi-addon of the [electrodacus BMS](http://www.el
 * Hosts unaltered electrodacus HTML file (apart from data URL)
 * Provides raw data as read by HTML file (you can still use any local HTML file, just change the data URL to `http://[the IP of the device]/rawData`)
 * Receiving and caching data from SBMS with unaltered firmware. (ignores AT commands)
+* Parsing data from SBMS, usable by Consumers like the MQTT client. (currently only live data)
+* MQTT client: publish live data in JSON format whenever it is received from the SBMS main board
+
 
 ## Planned features
 
-not necessarily in that order
+Not necessarily in that order.
 
 * OTA updates (configurable, password protected)
-* Parse data from SBMS into usable form
-* MQTT client: publish live data in JSON format every second (or configurable interval)
+* More configuration options (especially for MQTT and data rates)
+* More beautiful webpages
 * InfluxDB client: create InfluxDB Line-format and send to configurable Server
 * NTP Timesync: add reliable timestamps to the data (in case of permanent internet connection)
 * TLS encryption: add certificate based authentication and encryption for MQTT and possibly Influxdb endpoints
 
-Please feel free to create issues for any suggestions.
+Please feel free to create issues for any suggestions. I've also added my plans there.
 
 ## Requirements
 
