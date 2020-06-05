@@ -41,7 +41,7 @@ The basic procedure is as follows:
 3. Make a temporary connection from the pin labelled IO0 to GND. This will bring the ESP32 into bootloader mode so you can flash the new firmware.
 4. Only now plug in your USB to Serial converter to your USB port (or power up your dedicated 3.3V source).
 5. Flash the firmware (see next section)
-6. Verify you can reach the device via WiFi. It should create an Access Point with a name starting with SBMS, followed by 12 characters representing a MAC-Address.
+6. Verify you can reach the device via WiFi. It should create an Access Point with a name starting with SBMS, followed by 12 characters representing a MAC-Address. The default password for that AP is "electrodacus" (without the quotes). Connect to it by going to 192.168.4.1 in your browser.
 7. Disconnect everything you just connected before plugging the WiFi module back onto your SBMS.
 
 As soon as OTA is in place, consecutive updates will be far less painful.
@@ -74,6 +74,11 @@ Flash: [=======   ]  74.3% (used 973461 bytes from 1310720 bytes)
 ```
 4. Flash! Platformio will usually find the right serial port to use automatically.
 ```
-platformio run --target upload --target uploadfs
+platformio run --target upload
 ```
-5. After the process is finished, replug your USB (or power supply) to reboot the ESP32. That should be it.
+5. After the process is finished, replug your USB (or power supply) to reboot the ESP32 and make sure the GPIO0 is still connected to GND so you can flash again.
+6. Upload the filesystem
+```
+platformio run --target uploadfs
+```
+7. After the process is finished, disconnect GPIO0 and replug your USB (or power supply) to reboot the ESP32. That should be it.
