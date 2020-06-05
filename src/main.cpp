@@ -400,6 +400,12 @@ void setup()
         request->redirect("/index.html");
     });
 
+  //special handling for favicon
+  server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(SPIFFS, "/web/static/favicon.ico");
+    });
+
+  //manually handle all interactive pages
   server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send(SPIFFS, "/web/index.html", String(), false, templateVersion);
     });
