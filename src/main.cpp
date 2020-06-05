@@ -185,28 +185,66 @@ void mqttUpdate()
 struct MqttJsonWriter {
   // Writes one byte, returns the number of bytes written (0 or 1)
   size_t write(uint8_t c)
-  {
-    return mqtt.write(c);
+  { 
+    buf[bufi++] = c;
+    if(bufi == MQTT_MAX_PACKET_SIZE) flush();
+    return 1;
   }
   // Writes several bytes, returns the number of bytes written
-  size_t write(const uint8_t *buffer, size_t length){
-    return mqtt.write(buffer, min(length, (size_t)mqtt.getBufferSize())); 
+  size_t write(const uint8_t *buffer, size_t length)
+  { 
+    size_t i = 0;
+    while(i < length && bufi < MQTT_MAX_PACKET_SIZE)
+    {
+      buf[bufi++] = buffer[i++];
+    }
+
+    if(bufi == MQTT_MAX_PACKET_SIZE) flush();
+    
+    return i; 
   }
-} mqttJsonWriter;
+
+  uint8_t buf[MQTT_MAX_PACKET_SIZE];
+  size_t bufi;
+
+  MqttJsonWriter()
+  {
+    bufi = 0;
+  }
+
+  void flush()
+  {
+    size_t written = 0;
+    while(written < bufi)
+    {
+
+      size_t thisWrite = mqtt.write(buf + written, bufi - written);
+      if(thisWrite == 0) return; //error, couldn't even write a single byte. Prevent infinite loop.
+      written += thisWrite;
+      printf("flushed %d of %d bytes\n", written, bufi);
+    }
+
+    bufi = 0;
+  }
+};
 
 void mqttPublishJson(const JsonDocument *doc, const String topic)
 {
 
   mqtt.beginPublish((s_mq_prefix + topic).c_str(), measureJson(*doc), false);
 
-  serializeJson(*doc, mqttJsonWriter);
+  MqttJsonWriter writer;
+  serializeJson(*doc, writer);
+
+  writer.flush();
 
   mqtt.endPublish();
 }
 
 void mqttPublishSBMS(const SbmsData &sbms)
 {
-  StaticJsonDocument<200> doc;
+  //size calculated by https://arduinojson.org/v6/assistant/
+  StaticJsonDocument<JSON_ARRAY_SIZE(8) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(6) + JSON_OBJECT_SIZE(12) + JSON_OBJECT_SIZE(15)> doc;
 
   doc["time"]["year"] = sbms.year;
   doc["time"]["month"] = sbms.month;
