@@ -19,13 +19,15 @@ body {
 
     <form action="/sWifi" method="post">
         <label for="hostname">Hostname (label for your device):</label><br>
-        <input type="text" id="hostname" name="hostname" value="SBMS"><br>
+        <input type="text" id="hostname" name="hostname" value="%wifi_hostname%"><br>
         <label for="ssid">SSID:</label><br>
-        <input type="text" id="ssid" name="ssid" value="your WiFi ssid"><br>
+        <input type="text" id="ssid" name="ssid" value="%wifi_ssid%"><br>
         <label for="pw">WiFi Password:</label><br>
-        <input type="password" id="pw" name="pw" value=""><br><br>
+        <input type="password" id="pw" name="pw" value="%wifi_pw%"><br><br>
         <input type="submit" value="Save">
     </form>
+
+    <p><a href="settings.html">BACK</a></p>
 
 </body>
 </html>

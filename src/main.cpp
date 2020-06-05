@@ -48,6 +48,17 @@ String templateVersion(const String& var)
   return String();
 }
 
+String templateSettings(const String& var)
+{
+  if(var == "wifi_hostname")
+    return s_hostname;
+  if(var == "wifi_ssid")
+    return s_ssid;
+  if(var == "wifi_pw")
+    return s_password;
+  return String();
+}
+
 void notFound(AsyncWebServerRequest *request) {
     request->send(404, "text/plain", "Not found");
 }
@@ -140,7 +151,7 @@ void setup()
     });
 
   server.on("/settings.html", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send(SPIFFS, "/web/settings.html");
+        request->send(SPIFFS, "/web/settings.html", String(), false, templateSettings);
     });
 
   server.on("/sWifi", HTTP_POST, [](AsyncWebServerRequest *request){
@@ -161,11 +172,17 @@ void setup()
       readWifiSettings();
 
       if(name == s_hostname && ssid == s_ssid && pw == s_password) { //success
-        request->send(200, "text/plain", "WiFi Settings stored successfully. Connect to your WiFi to access this device again.");
+        request->send(SPIFFS, "/web/set_response.html", String(), false, [](const String &var){
+          if(var == "message") return String(F("WiFi Settings stored successfully. Connect to your WiFi to access this device again."));
+          return String();
+        });
         wifiSettingsChanged = true;
       }
       else {
-        request->send(200, "text/plain", "Error storing parameters. Read values do not match what should have been written.");
+        request->send(SPIFFS, "/web/set_response.html", String(), false, [](const String &var){
+          if(var == "message") return String(F("Error storing parameters. Read values do not match what should have been written."));
+          return String();
+        });
         wifiSettingsChanged = false;
       }
       
@@ -254,7 +271,6 @@ void loop()
     {
       auto sbms = SbmsData(varStore.getVar("sbms"));
 
-      //Serial.printf("%02d-%02d-%02d %02d:%02d:%02d %3d%% C1: %dmV, C2: %dmV, %.1fC\r\n", sbms.year, sbms.month, sbms.day, sbms.hour, sbms.minute, sbms.second, sbms.stateOfChargePercent, sbms.cellVoltageMV[0], sbms.cellVoltageMV[1], sbms.temperatureInternalTenthC/10.0f);
     }
   }
   
