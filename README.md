@@ -71,6 +71,11 @@ Flash: [=======   ]  74.3% (used 973461 bytes from 1310720 bytes)
 ```
 4. Flash! Platformio will usually find the right serial port to use automatically.
 ```
-platformio run --target upload --target uploadfs
+platformio run --target upload
 ```
-5. After the process is finished, replug your USB (or power supply) to reboot the ESP32. That should be it.
+5. After the process is finished, replug your USB (or power supply) to reboot the ESP32 and make sure the GPIO0 is still connected to GND so you can flash again.
+6. Upload the filesystem
+```
+platformio run --target uploadfs
+```
+7. After the process is finished, disconnect GPIO0 and replug your USB (or power supply) to reboot the ESP32. That should be it.
