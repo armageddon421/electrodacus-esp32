@@ -16,6 +16,10 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
+//MQTT includes
+#include <WiFiClient.h>
+#include <PubSubClient.h>
+
 //file system
 #include <SPIFFS.h>
 
@@ -29,17 +33,59 @@
 //instances
 AsyncWebServer server(80);
 
+WiFiClient mqttWifiClient;
+PubSubClient mqtt(mqttWifiClient);
+
 JsvarStore varStore(Serial);
 
+//------------------------- GLOBALS ---------------------
+
+bool ap_fallback = false;
+unsigned long lastWiFiTime = 0;
+bool wifiSettingsChanged = false;
+
+
+//------------------------- SETTINGS --------------------
 
 bool s_sta_enabled = false;
 String s_hostname = "SBMS";
 String s_ssid = "SBMS";
 String s_password = "";
 
-bool ap_fallback = false;
-unsigned long lastWiFiTime = 0;
-bool wifiSettingsChanged = false;
+void readWifiSettings()
+{
+  auto sWifi = SPIFFS.open("/sWifi.txt"); //default mode is read
+
+  s_sta_enabled = sWifi.readStringUntil('\r') == "1"; if(sWifi.peek() == '\n') sWifi.read();
+  s_hostname = sWifi.readStringUntil('\r'); if(sWifi.peek() == '\n') sWifi.read();
+  s_ssid = sWifi.readStringUntil('\r'); if(sWifi.peek() == '\n') sWifi.read();
+  s_password = sWifi.readStringUntil('\r');
+  sWifi.close();
+}
+
+void writeWifiSettings(const char *hostname, const char *ssid, const char *pw)
+{
+
+  auto sWifi = SPIFFS.open("/sWifi.txt", "w");
+
+  sWifi.printf("1\r\n");
+  sWifi.printf("%s\r\n", hostname);
+  sWifi.printf("%s\r\n", ssid);
+  sWifi.printf("%s\r\n", pw);
+
+  sWifi.flush();
+  sWifi.close();
+  
+}
+
+bool s_mq_enabled = false;
+String s_mq_host;
+uint32_t s_mq_port = 8883;
+String s_mq_user;
+String s_mq_password;
+
+
+//------------------------- TEMPLATES --------------------
 
 String templateVersion(const String& var)
 {
@@ -59,35 +105,50 @@ String templateSettings(const String& var)
   return String();
 }
 
-void notFound(AsyncWebServerRequest *request) {
-    request->send(404, "text/plain", "Not found");
+
+//------------------------- MQTT --------------------
+
+void mqttCallback(char* topic, byte* payload, unsigned int length)
+{
+  //we won't receive anything for now
 }
 
-void readWifiSettings() {
-  auto sWifi = SPIFFS.open("/sWifi.txt"); //default mode is read
+void mqttSetup()
+{
 
-  s_sta_enabled = sWifi.readStringUntil('\r') == "1"; if(sWifi.peek() == '\n') sWifi.read();
-  s_hostname = sWifi.readStringUntil('\r'); if(sWifi.peek() == '\n') sWifi.read();
-  s_ssid = sWifi.readStringUntil('\r'); if(sWifi.peek() == '\n') sWifi.read();
-  s_password = sWifi.readStringUntil('\r');
-  sWifi.close();
-}
-
-void writeWifiSettings(const char *hostname, const char *ssid, const char *pw) {
-
-  auto sWifi = SPIFFS.open("/sWifi.txt", "w");
-
-  sWifi.printf("1\r\n");
-  sWifi.printf("%s\r\n", hostname);
-  sWifi.printf("%s\r\n", ssid);
-  sWifi.printf("%s\r\n", pw);
-
-  sWifi.flush();
-  sWifi.close();
+  //mqttWifiClient.setCACert(ca_cert);
+  mqtt.setServer(s_mq_host.c_str(), s_mq_port);
+  mqtt.setCallback(mqttCallback);
+  mqtt.setKeepAlive(60); //default is 15 seconds
+  //mqtt.setBufferSize(265); //override max package size (default 256)
   
 }
 
-void updateWifiState() {
+void mqttUpdate()
+{
+  if(!s_mq_enabled)
+  {
+    if(mqtt.connected())
+    {
+      mqtt.disconnect();
+    }
+  }
+  else
+  {
+    if(!mqtt.connected())
+    {
+      if (mqtt.connect(s_hostname.c_str(), s_mq_user.c_str(), s_mq_password.c_str()))
+      {
+        //client.subscribe(TOPIC);
+      }
+    }
+    mqtt.loop();
+  }
+}
+
+
+void updateWifiState()
+{
 
   if(ap_fallback || !s_sta_enabled)
   {
@@ -119,24 +180,37 @@ void updateWifiState() {
 
 }
 
+
+
+
+
+
+
 void setup()
 {
+  
+  //setup peripherals
   Serial.begin(921600);
 
-  
   pinMode(LED_BUILTIN, OUTPUT);
 
+  //load settings
   SPIFFS.begin();
 
   readWifiSettings();
 
+  
+
+
+  //setup libraries
   updateWifiState();
-
+  
+  mqttSetup();
+  
   
 
-  
-  
 
+  //setup webserver
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
         request->redirect("/index.html");
@@ -210,13 +284,16 @@ void setup()
 
   server.serveStatic("/static/", SPIFFS, "/web/static/").setCacheControl("max-age=600"); // Cache static responses for 10 minutes (600 seconds)
 
-  server.onNotFound(notFound);
+  server.onNotFound([](AsyncWebServerRequest *request){
+        request->send(404, "text/plain", "Not found");
+    });
 
   server.begin();
   
 }
 
-void updateLed() {
+void updateLed()
+{
   if(s_sta_enabled && WiFi.status() == WL_CONNECTED)
   {
     digitalWrite(BUILTIN_LED, HIGH);
@@ -235,13 +312,12 @@ void updateLed() {
 
 }
 
-void loop()
+bool handleWiFi()
 {
   auto t = millis();
 
-  updateLed();
-
-  if(wifiSettingsChanged) {
+  if(wifiSettingsChanged)
+  {
     wifiSettingsChanged = false;
     lastWiFiTime = t + 5000; //give it a little extra time
     ap_fallback = false;
@@ -263,6 +339,20 @@ void loop()
     updateWifiState();
   }
 
+  return WiFi.status() == WL_CONNECTED;
+}
+
+void loop()
+{
+  bool connected = handleWiFi();
+
+  updateLed();
+
+  if(connected)
+  {
+    mqttUpdate();
+  }
+
 
   String parsed = varStore.update();
   if(parsed.length() > 0)
@@ -271,6 +361,24 @@ void loop()
     {
       auto sbms = SbmsData(varStore.getVar("sbms"));
 
+      Serial.printf("%02d-%02d-%02d %02d:%02d:%02d %3d%% C1: %dmV, C2: %dmV, %.1fC\r\n", sbms.year, sbms.month, sbms.day, sbms.hour, sbms.minute, sbms.second, sbms.stateOfChargePercent, sbms.cellVoltageMV[0], sbms.cellVoltageMV[1], sbms.temperatureInternalTenthC/10.0f);
+      Serial.printf("%dmA, %dmA, %dmA, %dmA, %d, %d, flags: %d\r\n", sbms.batteryCurrentMA, sbms.pv1CurrentMA, sbms.pv2CurrentMA, sbms.extLoadCurrentMA, sbms.ad2, sbms.ad3, sbms.flags);
+
+      Serial.printf("OV: %d\r\n", sbms.getFlag(SbmsData::FlagBit::OV));
+      Serial.printf("OVLK: %d\r\n", sbms.getFlag(SbmsData::FlagBit::OVLK));
+      Serial.printf("UV: %d\r\n", sbms.getFlag(SbmsData::FlagBit::UV));
+      Serial.printf("UVLK: %d\r\n", sbms.getFlag(SbmsData::FlagBit::UVLK));
+      Serial.printf("IOT: %d\r\n", sbms.getFlag(SbmsData::FlagBit::IOT));
+      Serial.printf("COC: %d\r\n", sbms.getFlag(SbmsData::FlagBit::COC));
+      Serial.printf("DOC: %d\r\n", sbms.getFlag(SbmsData::FlagBit::DOC));
+      Serial.printf("DSC: %d\r\n", sbms.getFlag(SbmsData::FlagBit::DSC));
+      Serial.printf("CELF: %d\r\n", sbms.getFlag(SbmsData::FlagBit::CELF));
+      Serial.printf("OPEN: %d\r\n", sbms.getFlag(SbmsData::FlagBit::OPEN));
+      Serial.printf("LVC: %d\r\n", sbms.getFlag(SbmsData::FlagBit::LVC));
+      Serial.printf("ECCF: %d\r\n", sbms.getFlag(SbmsData::FlagBit::ECCF));
+      Serial.printf("CFET: %d\r\n", sbms.getFlag(SbmsData::FlagBit::CFET));
+      Serial.printf("EOC: %d\r\n", sbms.getFlag(SbmsData::FlagBit::EOC));
+      Serial.printf("DFET: %d\r\n", sbms.getFlag(SbmsData::FlagBit::DFET));
     }
   }
   
