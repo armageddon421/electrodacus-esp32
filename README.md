@@ -86,4 +86,5 @@ platformio run --target uploadfs
 ## Frequently asked Questions (probably)
 
 Q: Why are there no binary releases?
+
 A: The software required for the ESP32 consists of four distinct parts: Bootloader, partition table, application and file system. It is difficult to combine these into a single bin file and instructions to flash them would be error prone. Over the air updates are also a completely different situation. PlattformIO is quick and easy to install and use and handles most situations automatically. There is a pissibility to provide a target for automated one-click OTA updates at a later date.
