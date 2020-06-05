@@ -43,10 +43,13 @@ JsvarStore varStore(Serial);
 
 //------------------------- GLOBALS ---------------------
 
+//WIFI
 bool ap_fallback = false;
 unsigned long lastWiFiTime = 0;
 bool wifiSettingsChanged = false;
 
+//MQTT
+unsigned long mqLastConnectionAttempt = 0;
 
 //------------------------- SETTINGS --------------------
 
@@ -83,7 +86,7 @@ void writeWifiSettings(const char *hostname, const char *ssid, const char *pw)
 
 bool s_mq_enabled = false;
 String s_mq_host;
-uint32_t s_mq_port = 8883;
+uint32_t s_mq_port = 1883;
 String s_mq_prefix = "/";
 String s_mq_user;
 String s_mq_password;
@@ -94,8 +97,7 @@ void readMqttSettings()
 
   s_mq_enabled = sMqtt.readStringUntil('\r') == "1"; if(sMqtt.peek() == '\n') sMqtt.read();
   s_mq_host = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
-  String portString = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
-  s_mq_port = atoi(portString.c_str());
+  s_mq_port = sMqtt.readStringUntil('\r').toInt(); if(sMqtt.peek() == '\n') sMqtt.read();
   s_mq_prefix = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
   s_mq_user = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
   s_mq_password = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
@@ -143,6 +145,15 @@ void mqttSetup()
   
 }
 
+bool mqttConnect()
+{
+  if(s_mq_user.isEmpty())
+  {
+    return mqtt.connect(s_hostname.c_str());
+  }
+  return mqtt.connect(s_hostname.c_str(), s_mq_user.c_str(), s_mq_password.c_str());
+}
+
 void mqttUpdate()
 {
   if(!s_mq_enabled)
@@ -154,11 +165,17 @@ void mqttUpdate()
   }
   else
   {
-    if(!mqtt.connected())
+    if(!mqtt.connected() && millis() - mqLastConnectionAttempt > 1000)
     {
-      if (mqtt.connect(s_hostname.c_str(), s_mq_user.c_str(), s_mq_password.c_str()))
+      printf("Connecting to %s : %d as %s", s_mq_host.c_str(), s_mq_port, s_hostname.c_str());
+      mqttSetup();
+      if (mqttConnect())
       {
         //client.subscribe(TOPIC);
+      }
+      else
+      {
+        mqLastConnectionAttempt = millis();
       }
     }
     mqtt.loop();
@@ -180,7 +197,7 @@ struct MqttJsonWriter {
 void mqttPublishJson(const JsonDocument *doc, const String topic)
 {
 
-  mqtt.beginPublish((s_mq_prefix + "/" + topic).c_str(), measureJson(*doc), false);
+  mqtt.beginPublish((s_mq_prefix + topic).c_str(), measureJson(*doc), false);
 
   serializeJson(*doc, mqttJsonWriter);
 
@@ -307,7 +324,7 @@ void setup()
   //setup libraries
   updateWifiState();
   
-  mqttSetup();
+  //mqttSetup(); //will be set up automatically when enabled
   
   
 
