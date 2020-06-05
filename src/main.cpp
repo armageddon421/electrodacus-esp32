@@ -105,6 +105,23 @@ void readMqttSettings()
   sMqtt.close();
 }
 
+void writeMqttSettings(bool enabled, const char *host, uint32_t port, const char *prefix, const char *user, const char *password)
+{
+
+  auto sMqtt = SPIFFS.open("/sMqtt.txt", "w");
+
+  sMqtt.printf("%d\r\n", enabled?1:0);
+  sMqtt.printf("%s\r\n", host);
+  sMqtt.printf("%d\r\n", port);
+  sMqtt.printf("%s\r\n", prefix);
+  sMqtt.printf("%s\r\n", user);
+  sMqtt.printf("%s\r\n", password);
+
+  sMqtt.flush();
+  sMqtt.close();
+  
+}
+
 
 //------------------------- TEMPLATES --------------------
 
@@ -393,9 +410,9 @@ void setup()
       AsyncWebParameter* p_pw = request->getParam("pw", true);
 
       
-      const String name = p_name->value();
-      const String ssid = p_ssid->value();
-      const String pw = p_pw->value();
+      const String &name = p_name->value();
+      const String &ssid = p_ssid->value();
+      const String &pw = p_pw->value();
 
       writeWifiSettings(name.c_str(), ssid.c_str(), pw.c_str());
       readWifiSettings();
@@ -416,6 +433,53 @@ void setup()
       }
       
       
+    }
+    else
+    {
+      request->send(200, "text/plain", "Error. Missing Parameters.");
+    }
+    
+    
+  });
+
+  server.on("/sMqtt", HTTP_POST, [](AsyncWebServerRequest *request){
+
+    //Check if POST (but not File) parameter exists
+    if(request->hasParam("mqHost", true) && request->hasParam("mqPort", true) && request->hasParam("mqPrefix", true) && request->hasParam("mqUser", true) && request->hasParam("mqPassword", true))
+    {
+      AsyncWebParameter* p_host = request->getParam("mqHost", true);
+      AsyncWebParameter* p_port = request->getParam("mqPort", true);
+      AsyncWebParameter* p_prefix = request->getParam("mqPrefix", true);
+      AsyncWebParameter* p_user = request->getParam("mqUser", true);
+      AsyncWebParameter* p_password = request->getParam("mqPassword", true);
+
+
+      bool mqEnabled = request->hasParam("mqEnable", true);
+
+      const String &host = p_host->value();
+      uint32_t port = p_port->value().toInt();
+      const String &prefix = p_prefix->value();
+      const String &user = p_user->value();
+      const String &password = p_password->value();
+
+      writeMqttSettings(mqEnabled, host.c_str(), port, prefix.c_str(), user.c_str(), password.c_str());
+      readMqttSettings();
+      
+
+      if(mqEnabled == s_mq_enabled && host == s_mq_host && port == s_mq_port && prefix == s_mq_prefix && user == s_mq_user && password == s_mq_password) { //success
+        request->send(SPIFFS, "/web/set_response.html", String(), false, [](const String &var){
+          if(var == "message") return String(F("MQTT Settings stored successfully. Data should be coming in as soon as the connection was successful."));
+          return String();
+        });
+      }
+      else {
+        request->send(SPIFFS, "/web/set_response.html", String(), false, [](const String &var){
+          if(var == "message") return String(F("Error storing parameters. Read values do not match what should have been written."));
+          return String();
+        });
+      }
+      
+      if(mqtt.connected()) mqtt.disconnect(); //cause reinitialization, even if config failed. We want to see the problem immediately rather than later.
     }
     else
     {
