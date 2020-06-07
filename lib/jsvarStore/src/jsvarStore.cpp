@@ -3,125 +3,143 @@
 //include for yield on esp32
 #include <esp32-hal.h>
 
-JsvarStore::JsvarStore(Stream &stream)
-    : mStream(stream)
-    , mState(0)
+JsvarStore::JsvarStore()
+    : mState(0)
     , mCounter(0)
 {
-
+    mMutex = xSemaphoreCreateMutex();
 }
 
-String JsvarStore::update()
+JsvarStore::~JsvarStore()
 {
-    while(mStream.available())
+    vSemaphoreDelete(mMutex);
+}
+
+String JsvarStore::handleChar(const char &c)
+{
+
+    if(mState == 0) //search for "var " with the space
     {
-        char c = mStream.read();
-
-        if(mState == 0) //search for "var " with the space
+        const char var[] = "var ";
+        if(mCounter <= 4 && var[mCounter] == c)
         {
-            const char var[] = "var ";
-            if(mCounter <= 4 && var[mCounter] == c)
-            {
-                mCounter ++;
+            mCounter ++;
 
-                if(mCounter == 4) //token found sucessfully
-                {
-                    mCounter = 0;
-                    mState = 1;
-                }
-            }
-            else //error case
+            if(mCounter == 4) //token found sucessfully
             {
-                reset();
+                mCounter = 0;
+                mState = 1;
+            }
+        }
+        else //error case
+        {
+            reset();
+        }
+        
+    }
+    else if(mState == 1) //parse variable name until '='
+    {
+        if(c == '=') //end of var name
+        {
+            mState = 2;
+            mCounter = 0;
+        }
+        else if(mCounter < 10) //max var name length is 10
+        {
+            mVarName += c;
+            mCounter ++;
+        }
+        else //error case
+        {
+            reset();
+        }
+    }
+    else if(mState == 2) //expect a quotation mark or a [
+    {
+        if(c == '\"' || c == '[')
+        {
+            mState = 3;
+            mVarContent += c;
+        }
+        else //error case
+        {
+            reset();
+        }
+    }
+    else if(mState == 3) //parse content until '\"' or ']'
+    {
+        if((c == '\"' && mVarContent.charAt(0) == '\"') || (c == ']' && mVarContent.charAt(0) == '[')) //end of content
+        {
+            mState = 4;
+            mCounter = 0;
+            mVarContent += c;
+        }
+        else if(mCounter < 300) //max content length is 300
+        {
+            mVarContent += c;
+            mCounter ++;
+        }
+        else //error case
+        {
+            reset();
+        }
+    }
+    else if(mState == 4) //expect semicolon
+    {
+        if(c == ';') //line was valid, commit
+        {
+            if(mVarName.charAt(0) != 'h') //special treatment of history download
+            {
+                if( xSemaphoreTake( mMutex, (TickType_t) 5 ) )
+                {
+                    auto var = mVars.find(mVarName);
+                    if(var == mVars.end())
+                    {
+                        mVars.insert(std::pair<String,String>(String(mVarName), String(mVarContent))); //insert in our stored data
+                    }
+                    else
+                    {
+                        var->second = String(mVarContent);
+                    }
+                    xSemaphoreGive(mMutex);
+                }
             }
             
+            String varName = mVarName;
+            reset();
+            
+            return varName;
         }
-        else if(mState == 1) //parse variable name until '='
+        else //error case
         {
-            if(c == '=') //end of var name
-            {
-                mState = 2;
-                mCounter = 0;
-            }
-            else if(mCounter < 10) //max var name length is 10
-            {
-                mVarName += c;
-                mCounter ++;
-            }
-            else //error case
-            {
-                reset();
-            }
+            reset();
         }
-        else if(mState == 2) //expect a quotation mark or a [
-        {
-            if(c == '\"' || c == '[')
-            {
-                mState = 3;
-                mVarContent += c;
-            }
-            else //error case
-            {
-                reset();
-            }
-        }
-        else if(mState == 3) //parse content until '\"' or ']'
-        {
-            if((c == '\"' && mVarContent.charAt(0) == '\"') || (c == ']' && mVarContent.charAt(0) == '[')) //end of content
-            {
-                mState = 4;
-                mCounter = 0;
-                mVarContent += c;
-            }
-            else if(mCounter < 300) //max content length is 300
-            {
-                mVarContent += c;
-                mCounter ++;
-            }
-            else //error case
-            {
-                reset();
-            }
-        }
-        else if(mState == 4) //expect semicolon
-        {
-            if(c == ';') //line was valid, commit
-            {
-                auto var = mVars.find(mVarName);
-                if(var == mVars.end())
-                {
-                    mVars.insert(std::pair<String,String>(String(mVarName), String(mVarContent))); //insert in our stored data
-                }
-                else
-                {
-                    var->second = String(mVarContent);
-                }
-                
-                String varName = String(mVarName);
-                reset();
-                return varName;
-            }
-            else //error case
-            {
-                reset();
-            }
-        }
-
     }
+
     return String();
 }
 
 
 String JsvarStore::dumpVars() const
 {
-    String dump;
-    auto it = mVars.cbegin();
-    while(it != mVars.cend())
-    {
-        //reconstruct the original line syntax
-        dump += "var " + it->first + "=" + it->second + ";\r\n";
+    String dump((char*)0); //do not reserve anything at first
+    dump.reserve(2000); //then reserve huge block, this should fit everything
 
-        ++it;
+    if( xSemaphoreTake( mMutex, (TickType_t) 50 ) )
+    {
+        auto it = mVars.cbegin();
+        while(it != mVars.cend())
+        {
+            //reconstruct the original line syntax (without temporary strings involved)
+            dump += "var ";
+            dump += it->first;
+            dump += "=";
+            dump += it->second;
+            dump += ";\r\n";
+
+            ++it;
+        }
+        xSemaphoreGive(mMutex);
     }
 
     return dump;
@@ -130,12 +148,17 @@ String JsvarStore::dumpVars() const
 
 String JsvarStore::getVar(const String varName) const
 {
-    auto var = mVars.find(varName);
-    if(var != mVars.cend())
+    String res;
+    if( xSemaphoreTake( mMutex, (TickType_t) 50 ) )
     {
-        return String(var->second); //return a copy of the data
+        auto var = mVars.find(varName);
+        if(var != mVars.cend())
+        {
+            res = var->second; //return a copy of the data
+        }
+        xSemaphoreGive(mMutex);
     }
-    return String();
+    return res;
 }
 
 void JsvarStore::reset()
@@ -144,5 +167,6 @@ void JsvarStore::reset()
     mCounter = 0;
     mVarName.clear();
     mVarContent.clear();
+    timeTaken = 0;
 }
 

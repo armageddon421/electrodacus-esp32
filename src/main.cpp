@@ -26,6 +26,10 @@
 //file system
 #include <SPIFFS.h>
 
+//rtos drivers
+#include "driver/uart.h"
+#include "esp_log.h"
+
 //local libraries
 #include "jsvarStore.hpp"
 #include "sbmsData.hpp"
@@ -39,7 +43,7 @@ AsyncWebServer server(80);
 WiFiClient mqttWifiClient;
 PubSubClient mqtt(mqttWifiClient);
 
-JsvarStore varStore(Serial);
+JsvarStore varStore;
 
 //------------------------- GLOBALS ---------------------
 
@@ -364,6 +368,97 @@ void updateWifiState()
 }
 
 
+//------------------------- SERIAL --------------------
+#define UART_RX_BUF 1024
+#define UART_TX_BUF 0
+
+static QueueHandle_t uart_queue;
+
+
+void uartPrintf(const char *fmt, ...)
+{
+
+  va_list args;
+  va_start(args,fmt);//Initialiasing the List 
+
+  size_t size_string=vsnprintf(NULL,0,fmt,args); //Calculating the size of the formed string 
+
+  char string[size_string+1]; //Initialising the string, leave room for 0 byte
+  
+
+  vsnprintf(string,size_string+1,fmt,args); //Storing the outptut into the string 
+
+  va_end(args);
+
+  uart_write_bytes(UART_NUM_0, string, size_string);
+
+}
+
+//flags get updated when new data is received
+bool u_sbms = false;
+
+void uartTask(void *parameter)
+{
+  uart_event_t event;
+  uint8_t rxBuf[UART_RX_BUF];
+
+  uartPrintf("starting task\r\n");
+
+  for(;;)
+  {
+
+    if(xQueueReceive(uart_queue, (void * )&event, (portTickType)portMAX_DELAY)) {
+
+      if (event.type == UART_DATA) {
+        size_t len = 0;
+        ESP_ERROR_CHECK(uart_get_buffered_data_len(UART_NUM_0, (size_t*)&len));
+
+        size_t readLen = uart_read_bytes(UART_NUM_0, rxBuf, len, 10);
+
+        for(size_t i=0; i<readLen; i++)
+        {
+          String parsed = varStore.handleChar((char) rxBuf[i]);
+
+          if(!parsed.isEmpty())
+          {
+            //uartPrintf("%s\r\n",parsed.c_str());
+            if(parsed == "sbms") u_sbms = true;
+          }
+        }
+      }
+      else
+      {
+        varStore.reset();
+      }
+      
+
+    }
+
+
+ 
+  }
+}
+
+
+
+void setupSerial()
+{
+
+  uart_config_t uartConfig = {
+        .baud_rate = 921600,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
+    };
+
+  uart_param_config(UART_NUM_0, &uartConfig);
+
+  uart_driver_install(UART_NUM_0, UART_RX_BUF, UART_TX_BUF, 20, &uart_queue, 0);
+
+  xTaskCreate(uartTask, "uart", 2048 + UART_RX_BUF, NULL, 15, NULL);
+
+}
 
 
 
@@ -373,7 +468,7 @@ void setup()
 {
   
   //setup peripherals
-  Serial.begin(921600);
+  setupSerial();
 
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -384,7 +479,7 @@ void setup()
 
   readMqttSettings();
   
-
+  
 
   //setup libraries
   updateWifiState();
@@ -526,6 +621,7 @@ void setup()
     });
 
   server.begin();
+
   
 }
 
@@ -579,6 +675,7 @@ bool handleWiFi()
   return WiFi.status() == WL_CONNECTED;
 }
 
+
 void loop()
 {
   bool connected = handleWiFi();
@@ -591,16 +688,16 @@ void loop()
   }
 
 
-  String parsed = varStore.update();
-  if(parsed.length() > 0)
-  {
-    if(parsed == "sbms") //this guarantees the variable is stored in the varStore so we can get it
-    {
-      auto sbms = SbmsData(varStore.getVar("sbms"));
 
-      mqttPublishSBMS(sbms);
-    }
+  if(u_sbms) //this guarantees the variable is stored in the varStore so we can get it
+  {
+    u_sbms = false; //reset the flag
+
+    auto sbms = SbmsData(varStore.getVar("sbms"));
+
+    if(s_mq_enabled) mqttPublishSBMS(sbms);
   }
+  
   
 
 }

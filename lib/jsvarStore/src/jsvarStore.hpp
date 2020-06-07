@@ -1,17 +1,22 @@
 #ifndef JSVARSTORE_H
 #define JSVARSTORE_H
 
+#include <Arduino.h>
+
 #include <map>
 
 #include "Stream.h"
 
+
+
 class JsvarStore {
 
 public:
-    JsvarStore(Stream &stream);
+    JsvarStore();
+    ~JsvarStore();
 
     //updates with new data from stream. Parses at most one variable before returning. Returns the name of the parsed variable.
-    String update();
+    String handleChar(const char &c);
 
     //returns all vars in the source formatting
     String dumpVars() const;
@@ -19,13 +24,15 @@ public:
     //return the content of a specific var. Returns empty string if error or var not found.
     String getVar(const String varName) const;
 
-protected:
-
+    //reset the parser
     void reset();
 
+protected:
+
 private:
-    //holds a reference to the Stream to read input from
-    Stream &mStream;
+
+    //semaphore for data access
+    SemaphoreHandle_t mMutex;
 
     //hold all the data as Strings in a map for easy access
     std::map<String,String> mVars;
@@ -41,6 +48,9 @@ private:
 
     //holds the content parsed so far
     String mVarContent;
+
+    //debug
+    unsigned long timeTaken;
 
 };
 
