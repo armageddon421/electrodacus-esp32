@@ -407,8 +407,6 @@ void uartTask(void *parameter)
   uart_event_t event;
   uint8_t rxBuf[UART_RX_BUF];
 
-  uartPrintf("starting task\r\n");
-
   for(;;)
   {
 
@@ -642,7 +640,7 @@ void setup()
     });
 
   server.begin();
-
+  
   
 }
 
