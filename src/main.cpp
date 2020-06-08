@@ -371,8 +371,15 @@ void updateWifiState()
 //------------------------- SERIAL --------------------
 #define UART_RX_BUF 1024
 #define UART_TX_BUF 0
+#define UART_RES_STRLEN 10
+#define UART_RES_NUM_ELEMENTS 10
 
+//queue for uart events
 static QueueHandle_t uart_queue;
+
+//queue for result events
+static QueueHandle_t uart_result_queue;
+
 
 
 void uartPrintf(const char *fmt, ...)
@@ -394,8 +401,6 @@ void uartPrintf(const char *fmt, ...)
 
 }
 
-//flags get updated when new data is received
-bool u_sbms = false;
 
 void uartTask(void *parameter)
 {
@@ -421,8 +426,10 @@ void uartTask(void *parameter)
 
           if(!parsed.isEmpty())
           {
-            //uartPrintf("%s\r\n",parsed.c_str());
-            if(parsed == "sbms") u_sbms = true;
+            char parseEvent[UART_RES_STRLEN];
+            strlcpy(parseEvent, parsed.c_str(), UART_RES_STRLEN);
+
+            xQueueSendToBack(uart_result_queue, parseEvent, 0); //don't wait in case the queue is full
           }
         }
       }
@@ -431,18 +438,32 @@ void uartTask(void *parameter)
         varStore.reset();
       }
       
-
     }
-
-
- 
   }
 }
 
+String uartPopEvent()
+{
+  char event[UART_RES_STRLEN];
+
+  if(xQueueReceive(uart_result_queue, event, 0))
+  {
+    return event; //auto-cast to String
+  }
+
+  return String((char*)0); //return empty string without reserving a nullbyte
+}
 
 
 void setupSerial()
 {
+
+  //create queue for result events
+
+  uart_result_queue = xQueueCreate(UART_RES_NUM_ELEMENTS, UART_RES_STRLEN);
+
+
+  //configure uart and create reading task
 
   uart_config_t uartConfig = {
         .baud_rate = 921600,
@@ -688,14 +709,17 @@ void loop()
   }
 
 
+  //pop one event per loop
+  String uartEvent = uartPopEvent();
 
-  if(u_sbms) //this guarantees the variable is stored in the varStore so we can get it
+  if(!uartEvent.isEmpty())
   {
-    u_sbms = false; //reset the flag
+    if(uartEvent == "sbms") //this guarantees the variable is stored in the varStore so we can get it
+    {
+      auto sbms = SbmsData(varStore.getVar("sbms"));
 
-    auto sbms = SbmsData(varStore.getVar("sbms"));
-
-    if(s_mq_enabled) mqttPublishSBMS(sbms);
+      if(s_mq_enabled) mqttPublishSBMS(sbms);
+    }
   }
   
   
