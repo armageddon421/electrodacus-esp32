@@ -5,6 +5,8 @@
 
 SbmsData::SbmsData(String dataString)
 {
+    dataString.replace("\\\\", "\\"); //replace escaped "\" with single "\" 
+
     const char *data = dataString.c_str();
 
     uint16_t i = 1; //ignore quotation mark
