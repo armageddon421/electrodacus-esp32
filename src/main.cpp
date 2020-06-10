@@ -632,6 +632,44 @@ void setup()
         request->send(SPIFFS, "/testdata");
     });
 
+  server.on("/debug", HTTP_GET, [](AsyncWebServerRequest *request){
+
+        size_t num_tasks = uxTaskGetNumberOfTasks();
+        uartPrintf("debug\r\n");
+        TaskStatus_t tasks[num_tasks];
+        uint32_t run_time;
+
+        size_t num = uxTaskGetSystemState(tasks, num_tasks, &run_time);
+
+        run_time /= 100;
+
+        String res;
+        res.reserve(50*num);
+
+        String states[] = {"RUN", "RDY", "BLK", "SUS", "DEL"};
+
+        for(size_t x = 0; x < num; x++)
+        {
+          uint16_t percentage = tasks[x].ulRunTimeCounter / run_time;
+
+          res += tasks[x].pcTaskName;
+          res += "\t\t";
+          res += states[tasks[x].eCurrentState];
+          res += "\t\t";
+          res += tasks[x].uxBasePriority;
+          res += "\t\t";
+          res += tasks[x].ulRunTimeCounter;
+          res += "\t\t";
+          res += percentage;
+          res += "%\r\n";
+
+
+
+        }
+        uartPrintf("%s\r\n", res.c_str());
+        request->send(200, "text/plain", res);
+    });
+
 
   server.serveStatic("/static/", SPIFFS, "/web/static/").setCacheControl("max-age=600"); // Cache static responses for 10 minutes (600 seconds)
 
@@ -641,7 +679,7 @@ void setup()
 
   server.begin();
   
-  
+
 }
 
 void updateLed()
