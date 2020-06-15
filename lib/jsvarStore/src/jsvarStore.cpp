@@ -74,7 +74,7 @@ String JsvarStore::handleChar(const char &c)
             mCounter = 0;
             mVarContent += c;
         }
-        else if(mCounter < 300) //max content length is 300
+        else if(mCounter < 250) //max content length is 250
         {
             mVarContent += c;
             mCounter ++;
