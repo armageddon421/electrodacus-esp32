@@ -666,7 +666,6 @@ void setup()
 
 
         }
-        uartPrintf("%s\r\n", res.c_str());
         request->send(200, "text/plain", res);
     });
 
