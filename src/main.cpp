@@ -1,11 +1,11 @@
 //travis version handling
-#ifndef VERSION
-    #define VERSION "undefined version"
+#ifndef GIT_VERSION
+    #define GIT_VERSION "undefined version"
 #endif
 
 #define STRINGIFY(x) #x
 #define TOSTR(x) STRINGIFY(x)
-#define VERSION_STR TOSTR(VERSION)
+#define VERSION_STR TOSTR(GIT_VERSION)
 
 
 #include <Arduino.h>
@@ -14,7 +14,7 @@
 
 //JSON includes
 #include "ArduinoJson.h"
-
+ 
 //web server includes
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
