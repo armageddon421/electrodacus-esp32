@@ -13,7 +13,7 @@
 #include <WiFi.h>
 
 //JSON includes
-#include <ArduinoJson.h>
+#include <ArduinoJson.hpp>
  
 //web server includes
 #include <AsyncTCP.h>
