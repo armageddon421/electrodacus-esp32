@@ -50,6 +50,7 @@ JsvarStore varStore;
 //WIFI
 bool ap_fallback = false;
 unsigned long lastWiFiTime = 0;
+unsigned long lastWifiRetryTime = 0;
 bool wifiSettingsChanged = false;
 
 //MQTT
@@ -336,6 +337,18 @@ void mqttPublishSBMS(const SbmsData &sbms)
 
 void updateWifiState()
 {
+  if(ap_fallback && s_sta_enabled)
+  {
+    WiFi.mode(WIFI_MODE_APSTA);
+  }
+  else if(!ap_fallback && s_sta_enabled)
+  {
+    WiFi.mode(WIFI_MODE_STA);
+  }
+  else if(!s_sta_enabled)
+  {
+    WiFi.mode(WIFI_MODE_AP);
+  }
 
   if(ap_fallback || !s_sta_enabled)
   {
@@ -343,8 +356,6 @@ void updateWifiState()
     char ssid[22];
     sprintf(ssid, "SBMS-%04X%08X", (uint32_t)((uid>>32)%0xFFFF), (uint32_t)uid);
 
-
-    WiFi.mode(WIFI_MODE_APSTA);
 
     
     
@@ -354,14 +365,23 @@ void updateWifiState()
     WiFi.softAPConfig(IPAddress (192, 168, 4, 1), IPAddress (192, 168, 4, 1), IPAddress (255,255,255,0));
     WiFi.softAPsetHostname("SBMS");
   }
-  else if(s_sta_enabled) {
-    WiFi.mode(WIFI_MODE_STA);
+  else
+  {
+    WiFi.softAPdisconnect();
+  }
+  
+  
+  if(s_sta_enabled) {
 
     WiFi.setHostname(s_hostname.c_str());
 
     WiFi.begin(s_ssid.c_str(), s_password.c_str());
     WiFi.setAutoConnect(true);
     WiFi.setAutoReconnect(true);
+  }
+  else
+  {
+    WiFi.disconnect();
   }
 
 
@@ -709,8 +729,10 @@ bool handleWiFi()
   {
     wifiSettingsChanged = false;
     lastWiFiTime = t + 5000; //give it a little extra time
+    lastWifiRetryTime = t;
     ap_fallback = false;
     updateWifiState();
+    
   }
 
   if(s_sta_enabled && WiFi.status() == WL_CONNECTED)
@@ -722,10 +744,21 @@ bool handleWiFi()
     }
     
   }
-  else if(s_sta_enabled && !ap_fallback && WiFi.status() != WL_CONNECTED && t-lastWiFiTime > 10000)
+  else if(s_sta_enabled && WiFi.status() != WL_CONNECTED)
   {
-    ap_fallback = true;
-    updateWifiState();
+    
+    if(t-lastWifiRetryTime > 2000) //continue retrying every 2s even if AP is on
+    {
+      lastWifiRetryTime = t;
+      updateWifiState();
+    }
+    else if(t-lastWiFiTime > 20000 && !ap_fallback) //enable AP after 20s
+    {
+      lastWifiRetryTime = t;
+      ap_fallback = true;
+      updateWifiState();
+    }
+    
   }
 
   return WiFi.status() == WL_CONNECTED;
