@@ -788,6 +788,12 @@ void loop()
 
       if(s_mq_enabled) mqttPublishSBMS(sbms);
     }
+    else if(uartEvent == "s2") //this guarantees the variable is stored in the varStore so we can get it
+    {
+      auto s2array = varStore.getVar("s2");
+
+      if(s_mq_enabled) mqtt.publish((s_mq_prefix + "s2").c_str(), s2array.c_str());
+    }
   }
   
   
