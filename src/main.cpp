@@ -534,15 +534,7 @@ void setup()
         request->redirect("/index.html");
     });
 
-  //special handling for favicon
-  server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send(SPIFFS, "/web/static/favicon.ico");
-    });
-
   //manually handle all interactive pages
-  server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send(SPIFFS, "/web/index.html", String(), false, templateVersion);
-    });
 
   server.on("/sbms.html", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send(SPIFFS, "/web/sbms.html");
@@ -690,7 +682,7 @@ void setup()
     });
 
 
-  server.serveStatic("/static/", SPIFFS, "/web/static/").setCacheControl("max-age=600"); // Cache static responses for 10 minutes (600 seconds)
+  server.serveStatic("/", SPIFFS, "/dist/").setCacheControl("max-age=600"); // Cache static responses for 10 minutes (600 seconds)
 
   server.onNotFound([](AsyncWebServerRequest *request){
         request->send(404, "text/plain", "Not found");
