@@ -38,8 +38,9 @@ cache:
 
 install:
     - pip install -U platformio
-    - platformio update
-    - platformio lib install
+    # ignore install errors for now with || true
+    - platformio update || true
+    - platformio lib install || true
     
 
 script:
