@@ -2,7 +2,7 @@
     "hostname": "sbms",
     "sta_ssid": "",
     "sta_pw": "",
-    "sta_enable": true,
+    "sta_enable": false,
     "ap_ssid": "",
     "ap_pw": ""
 }
