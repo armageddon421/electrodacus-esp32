@@ -1,0 +1,8 @@
+{
+    "hostname": "sbms",
+    "sta_ssid": "",
+    "sta_pw": "",
+    "sta_enable": true,
+    "ap_ssid": "",
+    "ap_pw": ""
+}

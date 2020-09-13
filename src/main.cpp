@@ -59,34 +59,43 @@ unsigned long mqLastConnectionAttempt = 0;
 //------------------------- SETTINGS --------------------
 
 bool s_sta_enabled = false;
-String s_hostname = "SBMS";
-String s_ssid = "SBMS";
-String s_password = "";
+String s_sta_hostname = "SBMS";
+String s_sta_ssid = "SBMS";
+String s_sta_password = "";
+String s_ap_ssid = "SBMS";
+String s_ap_password = "";
+
 
 void readWifiSettings()
 {
-  auto sWifi = SPIFFS.open("/sWifi.txt"); //default mode is read
+  auto sWifi = SPIFFS.open("/cfg/wifi"); //default mode is read
 
-  s_sta_enabled = sWifi.readStringUntil('\r') == "1"; if(sWifi.peek() == '\n') sWifi.read();
-  s_hostname = sWifi.readStringUntil('\r'); if(sWifi.peek() == '\n') sWifi.read();
-  s_ssid = sWifi.readStringUntil('\r'); if(sWifi.peek() == '\n') sWifi.read();
-  s_password = sWifi.readStringUntil('\r');
+  const size_t capacity = JSON_OBJECT_SIZE(6) + 200;
+  DynamicJsonDocument doc(capacity);
+
+  deserializeJson(doc, sWifi);
+
+  s_sta_enabled = doc["sta_enable"].as<bool>();
+  s_sta_hostname = doc["hostname"].as<String>();
+  s_sta_ssid = doc["sta_ssid"].as<String>();
+  s_sta_password = doc["sta_pw"].as<String>();
+  s_ap_ssid = doc["ap_ssid"].as<String>();
+  s_ap_password = doc["ap_pw"].as<String>();
+
+  if(s_ap_ssid.length() == 0)
+  {
+    uint64_t uid = ESP.getEfuseMac();
+    char ssid[22];
+    sprintf(ssid, "SBMS-%04X%08X", (uint32_t)((uid>>32)%0xFFFF), (uint32_t)uid);
+    s_ap_ssid = String(ssid);
+  }
+
+  if(s_ap_password.length() == 0)
+  {
+    s_ap_password = "electrodacus";
+  }
+
   sWifi.close();
-}
-
-void writeWifiSettings(const char *hostname, const char *ssid, const char *pw)
-{
-
-  auto sWifi = SPIFFS.open("/sWifi.txt", "w");
-
-  sWifi.printf("1\r\n");
-  sWifi.printf("%s\r\n", hostname);
-  sWifi.printf("%s\r\n", ssid);
-  sWifi.printf("%s\r\n", pw);
-
-  sWifi.flush();
-  sWifi.close();
-  
 }
 
 bool s_mq_enabled = false;
@@ -140,11 +149,11 @@ String templateVersion(const String& var)
 String templateSettings(const String& var)
 {
   if(var == "wifi_hostname")
-    return s_hostname;
+    return s_sta_hostname;
   if(var == "wifi_ssid")
-    return s_ssid;
+    return s_sta_ssid;
   if(var == "wifi_pw")
-    return s_password;
+    return s_sta_password;
   if(var == "mq_enabled")
     return s_mq_enabled?"checked":String();
   if(var == "mq_host")
@@ -183,9 +192,9 @@ bool mqttConnect()
 {
   if(s_mq_user.isEmpty())
   {
-    return mqtt.connect(s_hostname.c_str());
+    return mqtt.connect(s_sta_hostname.c_str());
   }
-  return mqtt.connect(s_hostname.c_str(), s_mq_user.c_str(), s_mq_password.c_str());
+  return mqtt.connect(s_sta_hostname.c_str(), s_mq_user.c_str(), s_mq_password.c_str());
 }
 
 void mqttUpdate()
@@ -201,7 +210,7 @@ void mqttUpdate()
   {
     if(!mqtt.connected() && millis() - mqLastConnectionAttempt > 1000)
     {
-      printf("Connecting to %s : %d as %s", s_mq_host.c_str(), s_mq_port, s_hostname.c_str());
+      printf("Connecting to %s : %d as %s", s_mq_host.c_str(), s_mq_port, s_sta_hostname.c_str());
       mqttSetup();
       if (mqttConnect())
       {
@@ -352,15 +361,7 @@ void updateWifiState()
 
   if(ap_fallback || !s_sta_enabled)
   {
-    uint64_t uid = ESP.getEfuseMac();
-    char ssid[22];
-    sprintf(ssid, "SBMS-%04X%08X", (uint32_t)((uid>>32)%0xFFFF), (uint32_t)uid);
-
-
-    
-    
-
-    WiFi.softAP(ssid, "electrodacus");
+    WiFi.softAP(s_ap_ssid.c_str(), s_ap_password.c_str());
     delay(100);
     WiFi.softAPConfig(IPAddress (192, 168, 4, 1), IPAddress (192, 168, 4, 1), IPAddress (255,255,255,0));
     WiFi.softAPsetHostname("SBMS");
@@ -373,9 +374,9 @@ void updateWifiState()
   
   if(s_sta_enabled) {
 
-    WiFi.setHostname(s_hostname.c_str());
+    WiFi.setHostname(s_sta_hostname.c_str());
 
-    WiFi.begin(s_ssid.c_str(), s_password.c_str());
+    WiFi.begin(s_sta_ssid.c_str(), s_sta_password.c_str());
     WiFi.setAutoConnect(true);
     WiFi.setAutoReconnect(true);
   }
@@ -540,51 +541,14 @@ void setup()
         request->send(SPIFFS, "/web/sbms.html");
     });
 
+  server.on("^\\/cfg\\/(.+)$", HTTP_GET, [](AsyncWebServerRequest *request){
+      String file = request->pathArg(0);
+      request->send(SPIFFS, "/cfg/" + file, String(), false);
+  });
+
   server.on("/settings.html", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send(SPIFFS, "/web/settings.html", String(), false, templateSettings);
     });
-
-  server.on("/sWifi", HTTP_POST, [](AsyncWebServerRequest *request){
-
-    //Check if POST (but not File) parameter exists
-    if(request->hasParam("ssid", true) && request->hasParam("pw", true) && request->hasParam("hostname", true))
-    {
-      AsyncWebParameter* p_name = request->getParam("hostname", true);
-      AsyncWebParameter* p_ssid = request->getParam("ssid", true);
-      AsyncWebParameter* p_pw = request->getParam("pw", true);
-
-      
-      const String &name = p_name->value();
-      const String &ssid = p_ssid->value();
-      const String &pw = p_pw->value();
-
-      writeWifiSettings(name.c_str(), ssid.c_str(), pw.c_str());
-      readWifiSettings();
-
-      if(name == s_hostname && ssid == s_ssid && pw == s_password) { //success
-        request->send(SPIFFS, "/web/set_response.html", String(), false, [](const String &var){
-          if(var == "message") return String(F("WiFi Settings stored successfully. Connect to your WiFi to access this device again."));
-          return String();
-        });
-        wifiSettingsChanged = true;
-      }
-      else {
-        request->send(SPIFFS, "/web/set_response.html", String(), false, [](const String &var){
-          if(var == "message") return String(F("Error storing parameters. Read values do not match what should have been written."));
-          return String();
-        });
-        wifiSettingsChanged = false;
-      }
-      
-      
-    }
-    else
-    {
-      request->send(200, "text/plain", "Error. Missing Parameters.");
-    }
-    
-    
-  });
 
   server.on("/sMqtt", HTTP_POST, [](AsyncWebServerRequest *request){
 
@@ -687,6 +651,18 @@ void setup()
   server.onNotFound([](AsyncWebServerRequest *request){
         request->send(404, "text/plain", "Not found");
     });
+
+  server.onRequestBody([](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
+    
+    if (request->url() == "/cfg/wifi") {
+      fs::File f = SPIFFS.open("/cfg/wifi", "w");
+      f.write(data, len);
+      request->send(200, "text/plain", "saved");
+      readWifiSettings();
+      wifiSettingsChanged = true;
+    }
+
+  });
 
   server.begin();
   
