@@ -73,26 +73,29 @@ void readWifiSettings()
   const size_t capacity = JSON_OBJECT_SIZE(6) + 200;
   DynamicJsonDocument doc(capacity);
 
-  deserializeJson(doc, sWifi);
+  auto err = deserializeJson(doc, sWifi);
 
-  s_sta_enabled = doc["sta_enable"].as<bool>();
-  s_sta_hostname = doc["hostname"].as<String>();
-  s_sta_ssid = doc["sta_ssid"].as<String>();
-  s_sta_password = doc["sta_pw"].as<String>();
-  s_ap_ssid = doc["ap_ssid"].as<String>();
-  s_ap_password = doc["ap_pw"].as<String>();
-
-  if(s_ap_ssid.length() == 0)
+  if(err == DeserializationError::Ok)
   {
-    uint64_t uid = ESP.getEfuseMac();
-    char ssid[22];
-    sprintf(ssid, "SBMS-%04X%08X", (uint32_t)((uid>>32)%0xFFFF), (uint32_t)uid);
-    s_ap_ssid = String(ssid);
-  }
+    s_sta_enabled = doc["sta_enable"].as<bool>();
+    s_sta_hostname = doc["hostname"].as<String>();
+    s_sta_ssid = doc["sta_ssid"].as<String>();
+    s_sta_password = doc["sta_pw"].as<String>();
+    s_ap_ssid = doc["ap_ssid"].as<String>();
+    s_ap_password = doc["ap_pw"].as<String>();
 
-  if(s_ap_password.length() == 0)
-  {
-    s_ap_password = "electrodacus";
+    if(s_ap_ssid.length() == 0)
+    {
+      uint64_t uid = ESP.getEfuseMac();
+      char ssid[22];
+      sprintf(ssid, "SBMS-%04X%08X", (uint32_t)((uid>>32)%0xFFFF), (uint32_t)uid);
+      s_ap_ssid = String(ssid);
+    }
+
+    if(s_ap_password.length() == 0)
+    {
+      s_ap_password = "electrodacus";
+    }
   }
 
   sWifi.close();
@@ -107,35 +110,67 @@ String s_mq_password;
 
 void readMqttSettings()
 {
-  auto sMqtt = SPIFFS.open("/sMqtt.txt"); //default mode is read
+  auto sMqtt = SPIFFS.open("/cfg/mqtt"); //default mode is read
 
-  s_mq_enabled = sMqtt.readStringUntil('\r') == "1"; if(sMqtt.peek() == '\n') sMqtt.read();
-  s_mq_host = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
-  s_mq_port = sMqtt.readStringUntil('\r').toInt(); if(sMqtt.peek() == '\n') sMqtt.read();
-  s_mq_prefix = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
-  s_mq_user = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
-  s_mq_password = sMqtt.readStringUntil('\r'); if(sMqtt.peek() == '\n') sMqtt.read();
+  const size_t capacity = JSON_OBJECT_SIZE(6) + 200;
+  DynamicJsonDocument doc(capacity);
+
+  auto err = deserializeJson(doc, sMqtt);
+
+  if(err == DeserializationError::Ok)
+  {
+    s_mq_enabled = doc["mq_enabled"].as<bool>();
+    s_mq_host = doc["mq_host"].as<String>();
+    s_mq_port = doc["mq_port"].as<uint32_t>();
+    s_mq_prefix = doc["mq_prefix"].as<String>();
+    s_mq_user = doc["mq_user"].as<String>();
+    s_mq_password = doc["mq_password"].as<String>();
+  }
 
   sMqtt.close();
 }
 
-void writeMqttSettings(bool enabled, const char *host, uint32_t port, const char *prefix, const char *user, const char *password)
+bool data_sbms_enabled = true;
+bool data_sbms_diff = false;
+bool data_s2_enabled = false;
+
+void readDataSettings()
 {
+  auto sData = SPIFFS.open("/cfg/data"); //default mode is read
 
-  auto sMqtt = SPIFFS.open("/sMqtt.txt", "w");
+  const size_t capacity = JSON_OBJECT_SIZE(3) + 200;
+  DynamicJsonDocument doc(capacity);
 
-  sMqtt.printf("%d\r\n", enabled?1:0);
-  sMqtt.printf("%s\r\n", host);
-  sMqtt.printf("%d\r\n", port);
-  sMqtt.printf("%s\r\n", prefix);
-  sMqtt.printf("%s\r\n", user);
-  sMqtt.printf("%s\r\n", password);
+  auto err = deserializeJson(doc, sData);
 
-  sMqtt.flush();
-  sMqtt.close();
-  
+  if(err == DeserializationError::Ok)
+  {
+    data_sbms_enabled = doc["sbms_enabled"].as<bool>();
+    data_sbms_diff = doc["sbms_diff"].as<bool>();
+    data_s2_enabled = doc["s2_enabled"].as<bool>();
+  }
+
+  sData.close();
 }
 
+bool system_ota_limit = true;
+
+void readDataSettings()
+{
+  auto sSys = SPIFFS.open("/cfg/sys"); //default mode is read
+
+  const size_t capacity = JSON_OBJECT_SIZE(1) + 200;
+  DynamicJsonDocument doc(capacity);
+
+  auto err = deserializeJson(doc, sSys);
+
+  if(err == DeserializationError::Ok)
+  {
+    system_ota_limit = doc["ota_limit"].as<bool>();
+  }
+
+  sSys.close();
+}
 
 //------------------------- TEMPLATES --------------------
 
@@ -285,7 +320,7 @@ void mqttPublishJson(const JsonDocument *doc, const String topic)
 void mqttPublishSBMS(const SbmsData &sbms)
 {
   //size calculated by https://arduinojson.org/v6/assistant/
-  StaticJsonDocument<JSON_ARRAY_SIZE(8) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(6) + JSON_OBJECT_SIZE(12) + JSON_OBJECT_SIZE(15)> doc;
+  StaticJsonDocument<JSON_ARRAY_SIZE(8) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(6) + JSON_OBJECT_SIZE(13) + JSON_OBJECT_SIZE(15)> doc; //13 is the root element
 
   doc["time"]["year"] = sbms.year;
   doc["time"]["month"] = sbms.month;
@@ -336,6 +371,23 @@ void mqttPublishSBMS(const SbmsData &sbms)
   flags["CFET"] = sbms.getFlag(SbmsData::FlagBit::CFET);
   flags["EOC"] = sbms.getFlag(SbmsData::FlagBit::EOC);
   flags["DFET"] = sbms.getFlag(SbmsData::FlagBit::DFET);
+
+  //optional calculated fields
+
+  if(data_sbms_diff)
+  {
+    uint16_t min = -1;
+    uint16_t max = 0;
+
+    for(uint8_t i=0; i<8; i++)
+    {
+      uint16_t v = sbms.cellVoltageMV[i];
+      if(v > 0 && v < min) min = v;
+      if(v > 0 && v > max) max = v;
+    }
+
+    flags["delta"] = max-min;
+  }
 
   mqttPublishJson( &doc, "sbms");
 
@@ -550,56 +602,6 @@ void setup()
         request->send(SPIFFS, "/web/settings.html", String(), false, templateSettings);
     });
 
-  server.on("/sMqtt", HTTP_POST, [](AsyncWebServerRequest *request){
-
-    //Check if POST (but not File) parameter exists
-    if(request->hasParam("mqHost", true) && request->hasParam("mqPort", true) && request->hasParam("mqPrefix", true) && request->hasParam("mqUser", true) && request->hasParam("mqPassword", true))
-    {
-      AsyncWebParameter* p_host = request->getParam("mqHost", true);
-      AsyncWebParameter* p_port = request->getParam("mqPort", true);
-      AsyncWebParameter* p_prefix = request->getParam("mqPrefix", true);
-      AsyncWebParameter* p_user = request->getParam("mqUser", true);
-      AsyncWebParameter* p_password = request->getParam("mqPassword", true);
-
-
-      bool mqEnabled = request->hasParam("mqEnable", true);
-
-      const String &host = p_host->value();
-      uint32_t port = p_port->value().toInt();
-      const String &prefix = p_prefix->value();
-      const String &user = p_user->value();
-      const String &password = p_password->value();
-
-      writeMqttSettings(mqEnabled, host.c_str(), port, prefix.c_str(), user.c_str(), password.c_str());
-      readMqttSettings();
-      
-
-      if(mqEnabled == s_mq_enabled && host == s_mq_host && port == s_mq_port && prefix == s_mq_prefix && user == s_mq_user && password == s_mq_password) { //success
-        request->send(SPIFFS, "/web/set_response.html", String(), false, [](const String &var){
-          if(var == "message") return String(F("MQTT Settings stored successfully. Data should be coming in as soon as the connection was successful."));
-          return String();
-        });
-      }
-      else {
-        request->send(SPIFFS, "/web/set_response.html", String(), false, [](const String &var){
-          if(var == "message") return String(F("Error storing parameters. Read values do not match what should have been written."));
-          return String();
-        });
-      }
-      
-      if(mqtt.connected()) mqtt.disconnect(); //cause reinitialization, even if config failed. We want to see the problem immediately rather than later.
-    }
-    else
-    {
-      request->send(200, "text/plain", "Error. Missing Parameters.");
-    }
-    
-    
-  });
-
-    
-
-
   server.on("/rawData", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send(200, "text/javascript", varStore.dumpVars());
     });
@@ -660,6 +662,25 @@ void setup()
       request->send(200, "text/plain", "saved");
       readWifiSettings();
       wifiSettingsChanged = true;
+    }
+    else if (request->url() == "/cfg/mqtt") {
+      fs::File f = SPIFFS.open("/cfg/mqtt", "w");
+      f.write(data, len);
+      request->send(200, "text/plain", "saved");
+      readMqttSettings();
+      if(mqtt.connected()) mqtt.disconnect(); //cause reinitialization, even if config failed. We want to see the problem immediately rather than later.
+    }
+    else if (request->url() == "/cfg/data") {
+      fs::File f = SPIFFS.open("/cfg/data", "w");
+      f.write(data, len);
+      request->send(200, "text/plain", "saved");
+      readDataSettings();
+    }
+    else if (request->url() == "/cfg/sys") {
+      fs::File f = SPIFFS.open("/cfg/sys", "w");
+      f.write(data, len);
+      request->send(200, "text/plain", "saved");
+      readSystemSettings();
     }
 
   });
@@ -754,13 +775,13 @@ void loop()
     {
       auto sbms = SbmsData(varStore.getVar("sbms"));
 
-      if(s_mq_enabled) mqttPublishSBMS(sbms);
+      if(s_mq_enabled && data_sbms_enabled) mqttPublishSBMS(sbms);
     }
     else if(uartEvent == "s2") //this guarantees the variable is stored in the varStore so we can get it
     {
       auto s2array = varStore.getVar("s2");
 
-      if(s_mq_enabled) mqtt.publish((s_mq_prefix + "s2").c_str(), s2array.c_str());
+      if(s_mq_enabled && data_s2_enabled) mqtt.publish((s_mq_prefix + "s2").c_str(), s2array.c_str());
     }
   }
   
