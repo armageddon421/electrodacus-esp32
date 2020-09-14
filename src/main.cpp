@@ -172,38 +172,6 @@ void readSystemSettings()
   sSys.close();
 }
 
-//------------------------- TEMPLATES --------------------
-
-String templateVersion(const String& var)
-{
-  if(var == "VERSION")
-    return F(VERSION_STR);
-  return String();
-}
-
-String templateSettings(const String& var)
-{
-  if(var == "wifi_hostname")
-    return s_sta_hostname;
-  if(var == "wifi_ssid")
-    return s_sta_ssid;
-  if(var == "wifi_pw")
-    return s_sta_password;
-  if(var == "mq_enabled")
-    return s_mq_enabled?"checked":String();
-  if(var == "mq_host")
-    return s_mq_host;
-  if(var == "mq_port")
-    return String(s_mq_port);
-  if(var == "mq_prefix")
-    return s_mq_prefix;
-  if(var == "mq_user")
-    return s_mq_user;
-  if(var == "mq_password")
-    return s_mq_password;
-  return String();
-}
-
 
 //------------------------- MQTT --------------------
 
@@ -598,16 +566,16 @@ void setup()
       request->send(SPIFFS, "/cfg/" + file, String(), false);
   });
 
-  server.on("/settings.html", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send(SPIFFS, "/web/settings.html", String(), false, templateSettings);
-    });
-
   server.on("/rawData", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send(200, "text/javascript", varStore.dumpVars());
     });
   
   server.on("/dummyData", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send(SPIFFS, "/testdata");
+    });
+
+  server.on("/version", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(200, "text/plain", F(VERSION_STR));
     });
 
   server.on("/debug", HTTP_GET, [](AsyncWebServerRequest *request){
