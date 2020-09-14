@@ -1,0 +1,8 @@
+{
+"mq_enabled": false,
+"mq_hostname": "",
+"mq_port": 1883,
+"mq_prefix": "/",
+"mq_user": "",
+"mq_password": ""
+}
