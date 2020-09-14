@@ -155,7 +155,7 @@ void readDataSettings()
 
 bool system_ota_limit = true;
 
-void readDataSettings()
+void readSystemSettings()
 {
   auto sSys = SPIFFS.open("/cfg/sys"); //default mode is read
 
@@ -567,10 +567,10 @@ void setup()
   //load settings
   SPIFFS.begin();
 
+  readSystemSettings();
   readWifiSettings();
-
   readMqttSettings();
-  
+  readDataSettings();
   
 
   //setup libraries
