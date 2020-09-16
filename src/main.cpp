@@ -10,6 +10,7 @@
 
 #include <Arduino.h>
 
+//Networking basics
 #include <WiFi.h>
 
 //JSON includes
@@ -78,6 +79,8 @@ void readWifiSettings()
 
   auto err = deserializeJson(doc, sWifi);
 
+  sWifi.close();
+
   if(err == DeserializationError::Ok)
   {
     s_sta_enabled = doc["sta_enable"].as<bool>();
@@ -87,21 +90,33 @@ void readWifiSettings()
     s_ap_ssid = doc["ap_ssid"].as<String>();
     s_ap_password = doc["ap_pw"].as<String>();
 
+    bool rewrite = false;
+
     if(s_ap_ssid.length() == 0)
     {
       uint64_t uid = ESP.getEfuseMac();
       char ssid[22];
       sprintf(ssid, "SBMS-%04X%08X", (uint32_t)((uid>>32)%0xFFFF), (uint32_t)uid);
       s_ap_ssid = String(ssid);
+      doc["ap_ssid"] = s_ap_ssid;
+      rewrite = true;
     }
 
     if(s_ap_password.length() == 0)
     {
       s_ap_password = "electrodacus";
+      doc["ap_pw"] = s_ap_password;
+      rewrite = true;
+    }
+
+    if(rewrite)
+    {
+      sWifi = SPIFFS.open("/cfg/wifi", "w"); //default mode is read
+      serializeJson(doc, sWifi);
+      sWifi.flush();
+      sWifi.close();
     }
   }
-
-  sWifi.close();
 }
 
 
@@ -393,6 +408,7 @@ void updateWifiState()
     delay(100);
     WiFi.softAPConfig(IPAddress (192, 168, 4, 1), IPAddress (192, 168, 4, 1), IPAddress (255,255,255,0));
     WiFi.softAPsetHostname("SBMS");
+    ArduinoOTA.setHostname("SBMS");
   }
   else
   {
@@ -403,6 +419,7 @@ void updateWifiState()
   if(s_sta_enabled) {
 
     WiFi.setHostname(s_sta_hostname.c_str());
+    ArduinoOTA.setHostname(s_sta_hostname.c_str());
 
     WiFi.begin(s_sta_ssid.c_str(), s_sta_password.c_str());
     WiFi.setAutoConnect(true);
@@ -728,7 +745,7 @@ void updateLed()
 {
   if(s_sta_enabled && WiFi.status() == WL_CONNECTED)
   {
-    digitalWrite(BUILTIN_LED, HIGH);
+    digitalWrite(BUILTIN_LED, millis()%2000 < 1900);
   }
   else if(s_sta_enabled) {
     if(ap_fallback){
