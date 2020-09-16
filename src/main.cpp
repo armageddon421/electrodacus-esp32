@@ -26,6 +26,9 @@
 //file system
 #include <SPIFFS.h>
 
+//OTA
+#include <ArduinoOTA.h>
+
 //rtos drivers
 #include "driver/uart.h"
 #include "esp_log.h"
@@ -101,6 +104,7 @@ void readWifiSettings()
   sWifi.close();
 }
 
+
 bool s_mq_enabled = false;
 String s_mq_host;
 uint32_t s_mq_port = 1883;
@@ -130,6 +134,7 @@ void readMqttSettings()
   sMqtt.close();
 }
 
+
 bool data_sbms_enabled = true;
 bool data_sbms_diff = false;
 bool data_s2_enabled = false;
@@ -152,6 +157,7 @@ void readDataSettings()
 
   sData.close();
 }
+
 
 bool system_ota_limit = true;
 bool system_ota_arduino = false;
@@ -410,6 +416,62 @@ void updateWifiState()
 
 }
 
+//-------------------------- OTA ----------------------
+
+bool ota_arduino_started = false;
+int ota_arduino_command = 0;
+
+void otaSetup()
+{
+  ArduinoOTA
+    .onStart([]()
+    {
+      ota_arduino_command = ArduinoOTA.getCommand();
+
+      if (ota_arduino_command == U_SPIFFS)
+      {
+        SPIFFS.end();
+      }
+      
+    })
+    .onEnd([]()
+    {
+      if (ota_arduino_command == U_SPIFFS)
+      {
+        SPIFFS.end();
+      }
+    })
+    .onError([](ota_error_t error)
+    {
+      if (ota_arduino_command == U_SPIFFS)
+      {
+        SPIFFS.end();
+      }
+    });
+}
+
+void otaUpdate()
+{
+  bool timeOk = !system_ota_limit || millis() < 300000; // allow OTA only in the first 5 minutes if limit is activated
+
+  if(system_ota_arduino && timeOk && !ota_arduino_started)
+  {
+    ArduinoOTA.begin();
+    ota_arduino_started = true;
+  }
+  else if((!system_ota_arduino || !timeOk) && ota_arduino_started)
+  {
+    ArduinoOTA.end();
+    ota_arduino_started = false;
+  }
+
+  if(ota_arduino_started)
+  {
+    ArduinoOTA.handle();
+  }
+
+}
+
 
 //------------------------- SERIAL --------------------
 #define UART_RX_BUF 1024
@@ -548,6 +610,8 @@ void setup()
   
   //mqttSetup(); //will be set up automatically when enabled
   
+  //setup OTA
+  otaSetup();
   
 
 
@@ -726,6 +790,8 @@ bool handleWiFi()
 
 void loop()
 {
+  otaUpdate();
+
   bool connected = handleWiFi();
 
   updateLed();
