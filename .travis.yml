@@ -47,27 +47,13 @@ script:
     - platformio run
 
 
-#
-# Template #2: The project is intended to be used as a library with examples.
-#
-
-# language: python
-# python:
-#     - "2.7"
-#
-# sudo: false
-# cache:
-#     directories:
-#         - "~/.platformio"
-#
-# env:
-#     - PLATFORMIO_CI_SRC=path/to/test/file.c
-#     - PLATFORMIO_CI_SRC=examples/file.ino
-#     - PLATFORMIO_CI_SRC=path/to/test/directory
-#
-# install:
-#     - pip install -U platformio
-#     - platformio update
-#
-# script:
-#     - platformio ci --lib="." --board=ID_1 --board=ID_2 --board=ID_N
+deploy:
+  provider: releases
+  api_key: "6240dfb53b29bcf0a76daea6e59fb614faed153e "
+  file:
+    - ".pio/build/serial/firmare.bin"
+    - ".pio/build/serial/spiffs.bin"
+  skip_cleanup: true
+  on_tags: true
+  on:
+    tags: true

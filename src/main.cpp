@@ -29,6 +29,7 @@
 
 //OTA
 #include <ArduinoOTA.h>
+#include <Update.h>
 
 //rtos drivers
 #include "driver/uart.h"
@@ -59,6 +60,11 @@ bool wifiSettingsChanged = false;
 
 //MQTT
 unsigned long mqLastConnectionAttempt = 0;
+
+//system
+
+bool shouldReboot = false;
+bool web_ota_type_spiffs = false;
 
 //------------------------- SETTINGS --------------------
 
@@ -698,6 +704,41 @@ void setup()
         request->send(200, "text/plain", res);
     });
 
+  // Simple Firmware Update Form
+  server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, F("text/html"), F("<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>"));
+  });
+  server.on("/update", HTTP_POST, [](AsyncWebServerRequest *request){
+    shouldReboot = !Update.hasError() && web_ota_type_spiffs; // only reboot if we updated the spiffs. this allows to update firmware and spiffs and only reboot if both are done.
+    AsyncWebServerResponse *response = request->beginResponse(200, F("text/plain"), (!Update.hasError())?"OK":"FAIL");
+    response->addHeader("Connection", "close");
+    request->send(response);
+  },[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
+    if(!index){
+      if (filename.startsWith(F("spiffs")))
+      {
+        SPIFFS.end();
+        web_ota_type_spiffs = true;
+      }
+      if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)){
+        // error Update.printError(Serial);
+      }
+    }
+    if(!Update.hasError()){
+      if(Update.write(data, len) != len){
+        // error Update.printError(Serial);
+      }
+    }
+    if(final){
+      if(Update.end(true)){
+        // success
+        SPIFFS.begin();
+      } else {
+        // error Update.printError(Serial);
+      }
+    }
+  });
+
 
   server.serveStatic("/", SPIFFS, "/dist/").setCacheControl("max-age=600"); // Cache static responses for 10 minutes (600 seconds)
 
@@ -807,6 +848,13 @@ bool handleWiFi()
 
 void loop()
 {
+  // reboot if requested from any source after 1 second (allow time for cpu0 to process networking)
+  if(shouldReboot)
+  {
+    delay(1000);
+    ESP.restart();
+  }
+
   otaUpdate();
 
   bool connected = handleWiFi();
