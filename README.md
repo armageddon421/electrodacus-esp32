@@ -98,7 +98,7 @@ platformio run --target uploadfs
 ## Frequently asked Questions (probably)
 
 #### Why are there no binary releases?
-The software required for the ESP32 consists of four distinct parts: Bootloader, partition table, application and file system. It is difficult to combine these into a single bin file and instructions to flash them would be error prone. Over the air updates are also a completely different situation. PlattformIO is quick and easy to install and use and handles most situations automatically. There is a pissibility to provide a target for automated one-click OTA updates at a later date.
+There will be binary releases with OTA update via web interface very soon.
 
 #### What is MQTT?
 [MQTT](http://mqtt.org/) is a publisher-subscriber based message passing protocol that uses a central server called "broker" to relay the messages. Many IoT applications nowadays support MQTT, devices as well as dashboard and home automation solutions. It is easy to locally host your own local MQTT-Broker (for example [Mosquitto](https://mosquitto.org/)) for your home automation needs, a raspberry pi is already enough.
