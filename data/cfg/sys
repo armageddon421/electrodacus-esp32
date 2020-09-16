@@ -1,3 +1,4 @@
 {
-    "ota_limit": true
+    "ota_limit": true,
+    "ota_arduino": false
 }

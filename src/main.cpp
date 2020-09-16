@@ -154,6 +154,7 @@ void readDataSettings()
 }
 
 bool system_ota_limit = true;
+bool system_ota_arduino = false;
 
 void readSystemSettings()
 {
@@ -167,6 +168,7 @@ void readSystemSettings()
   if(err == DeserializationError::Ok)
   {
     system_ota_limit = doc["ota_limit"].as<bool>();
+    system_ota_arduino = foc["ota_arduino"].as<bool>();
   }
 
   sSys.close();
