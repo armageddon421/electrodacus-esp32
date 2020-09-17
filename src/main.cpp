@@ -44,6 +44,7 @@
 
 //instances
 AsyncWebServer server(80);
+AsyncEventSource eventsData("/eData");
 
 WiFiClient mqttWifiClient;
 PubSubClient mqtt(mqttWifiClient);
@@ -314,44 +315,47 @@ void mqttPublishJson(const JsonDocument *doc, const String topic)
   mqtt.endPublish();
 }
 
-void mqttPublishSBMS(const SbmsData &sbms)
+
+//size calculated by https://arduinojson.org/v6/assistant/
+StaticJsonDocument<JSON_ARRAY_SIZE(8) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(6) + JSON_OBJECT_SIZE(13) + JSON_OBJECT_SIZE(15)> docSBMS; //13 is the root element
+
+JsonDocument* toJsonSBMS(const SbmsData &sbms)
 {
-  //size calculated by https://arduinojson.org/v6/assistant/
-  StaticJsonDocument<JSON_ARRAY_SIZE(8) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(6) + JSON_OBJECT_SIZE(13) + JSON_OBJECT_SIZE(15)> doc; //13 is the root element
+  docSBMS.clear();
 
-  doc["time"]["year"] = sbms.year;
-  doc["time"]["month"] = sbms.month;
-  doc["time"]["day"] = sbms.day;
-  doc["time"]["hour"] = sbms.hour;
-  doc["time"]["minute"] = sbms.minute;
-  doc["time"]["second"] = sbms.second;
+  docSBMS["time"]["year"] = sbms.year;
+  docSBMS["time"]["month"] = sbms.month;
+  docSBMS["time"]["day"] = sbms.day;
+  docSBMS["time"]["hour"] = sbms.hour;
+  docSBMS["time"]["minute"] = sbms.minute;
+  docSBMS["time"]["second"] = sbms.second;
   
-  doc["soc"] = sbms.stateOfChargePercent;
+  docSBMS["soc"] = sbms.stateOfChargePercent;
 
-  JsonArray volt = doc.createNestedArray("cellsMV");
+  JsonArray volt = docSBMS.createNestedArray("cellsMV");
   for(uint8_t i=0; i<8; i++)
   {
     volt.add(sbms.cellVoltageMV[i]);
   }
 
-  doc["tempInt"] = sbms.temperatureInternalTenthC / 10.0;
-  doc["tempExt"] = sbms.temperatureExternalTenthC / 10.0;
+  docSBMS["tempInt"] = sbms.temperatureInternalTenthC / 10.0;
+  docSBMS["tempExt"] = sbms.temperatureExternalTenthC / 10.0;
 
-  JsonObject curr = doc.createNestedObject("currentMA");
+  JsonObject curr = docSBMS.createNestedObject("currentMA");
 
   curr["battery"] = sbms.batteryCurrentMA;
   curr["pv1"] = sbms.pv1CurrentMA;
   curr["pv2"] = sbms.pv2CurrentMA;
   curr["extLoad"] = sbms.extLoadCurrentMA;
 
-  doc["ad2"] = sbms.ad2;
-  doc["ad3"] = sbms.ad3;
-  doc["ad4"] = sbms.ad4;
+  docSBMS["ad2"] = sbms.ad2;
+  docSBMS["ad3"] = sbms.ad3;
+  docSBMS["ad4"] = sbms.ad4;
 
-  doc["heat1"] = sbms.heat1;
-  doc["heat2"] = sbms.heat2;
+  docSBMS["heat1"] = sbms.heat1;
+  docSBMS["heat2"] = sbms.heat2;
 
-  JsonObject flags = doc.createNestedObject("flags");
+  JsonObject flags = docSBMS.createNestedObject("flags");
 
   flags["OV"] = sbms.getFlag(SbmsData::FlagBit::OV);
   flags["OVLK"] = sbms.getFlag(SbmsData::FlagBit::OVLK);
@@ -386,8 +390,7 @@ void mqttPublishSBMS(const SbmsData &sbms)
     flags["delta"] = max-min;
   }
 
-  mqttPublishJson( &doc, "sbms");
-
+  return &docSBMS;
 }
 
 
@@ -640,6 +643,16 @@ void setup()
 
   //setup webserver
 
+  eventsData.onConnect([](AsyncEventSourceClient *client){
+
+    //send event with message "hello!", id current millis
+    // and set reconnect delay to 1 second
+    client->send("hello there!",NULL,millis(),1000);
+  });
+
+  server.addHandler(&eventsData);
+
+
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
         request->redirect("/index.html");
     });
@@ -786,6 +799,7 @@ void setup()
 
   });
 
+  
   server.begin();
   
 
@@ -854,6 +868,7 @@ bool handleWiFi()
   return WiFi.status() == WL_CONNECTED;
 }
 
+char jsonBuffer[2000];
 
 void loop()
 {
@@ -885,7 +900,26 @@ void loop()
     {
       auto sbms = SbmsData(varStore.getVar("sbms"));
 
-      if(s_mq_enabled && data_sbms_enabled) mqttPublishSBMS(sbms);
+      if((s_mq_enabled && data_sbms_enabled) || eventsData.count())
+      {
+        JsonDocument *doc = toJsonSBMS(sbms);
+
+        if(s_mq_enabled && data_sbms_enabled)
+        {
+          mqttPublishJson( doc, "sbms");
+        }
+
+        if(eventsData.count())
+        {
+          //size_t sz = measureJson(*doc) + 1;
+          //char buf[sz];
+          serializeJson(*doc, jsonBuffer, 2000);
+          uartPrintf("%s", jsonBuffer);
+          eventsData.send(jsonBuffer, "sbms", millis());
+        }
+      }
+
+     
     }
     else if(uartEvent == "s2") //this guarantees the variable is stored in the varStore so we can get it
     {
