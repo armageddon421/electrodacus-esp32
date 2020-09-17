@@ -49,7 +49,6 @@ script:
 
 deploy:
   provider: releases
-  api_key: "6240dfb53b29bcf0a76daea6e59fb614faed153e"
   file:
     - ".pio/build/serial/firmare.bin"
     - ".pio/build/serial/spiffs.bin"
