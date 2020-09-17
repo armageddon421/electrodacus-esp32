@@ -715,12 +715,18 @@ void setup()
     request->send(response);
   },[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
     if(!index){
+      int type = U_FLASH;
       if (filename.startsWith(F("spiffs")))
       {
         SPIFFS.end();
         web_ota_type_spiffs = true;
+        type = U_SPIFFS;
       }
-      if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)){
+      else
+      {
+        web_ota_type_spiffs = false;
+      }
+      if(!Update.begin(UPDATE_SIZE_UNKNOWN, type, LED_BUILTIN)){
         // error Update.printError(Serial);
       }
     }
@@ -732,7 +738,10 @@ void setup()
     if(final){
       if(Update.end(true)){
         // success
-        SPIFFS.begin();
+        if(web_ota_type_spiffs)
+        {
+          SPIFFS.begin();
+        }
       } else {
         // error Update.printError(Serial);
       }
