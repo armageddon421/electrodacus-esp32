@@ -45,14 +45,3 @@ install:
 
 script:
     - platformio run
-
-
-deploy:
-  provider: releases
-  file:
-    - ".pio/build/serial/firmare.bin"
-    - ".pio/build/serial/spiffs.bin"
-  skip_cleanup: true
-  on_tags: true
-  on:
-    tags: true
