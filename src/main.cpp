@@ -719,7 +719,15 @@ void setup()
 
   // Simple Firmware Update Form
   server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(200, F("text/html"), F("<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>"));
+    if(system_ota_limit && millis() > 300000)
+    {
+      request->send(200, F("text/html"), F("OTA time limit is passed. Please reboot your esp32."));
+    }
+    else
+    {
+      request->send(200, F("text/html"), F("<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>"));
+    }
+    
   });
   server.on("/update", HTTP_POST, [](AsyncWebServerRequest *request){
     shouldReboot = !Update.hasError() && web_ota_type_spiffs; // only reboot if we updated the spiffs. this allows to update firmware and spiffs and only reboot if both are done.
@@ -914,7 +922,6 @@ void loop()
           //size_t sz = measureJson(*doc) + 1;
           //char buf[sz];
           serializeJson(*doc, jsonBuffer, 2000);
-          uartPrintf("%s", jsonBuffer);
           eventsData.send(jsonBuffer, "sbms", millis());
         }
       }
