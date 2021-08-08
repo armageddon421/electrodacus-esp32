@@ -684,6 +684,7 @@ void setup()
 
         size_t num_tasks = uxTaskGetNumberOfTasks();
         uartPrintf("debug\r\n");
+        
         TaskStatus_t tasks[num_tasks];
         uint32_t run_time;
 
@@ -714,6 +715,8 @@ void setup()
 
 
         }
+        res += "\r\nFree Heap: ";
+        res += xPortGetFreeHeapSize();
         request->send(200, "text/plain", res);
     });
 
