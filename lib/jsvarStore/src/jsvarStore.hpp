@@ -18,8 +18,8 @@ public:
     //updates with new data from stream. Parses at most one variable before returning. Returns the name of the parsed variable.
     String handleChar(const char &c);
 
-    //returns all vars in the source formatting
-    String dumpVars() const;
+    //returns all vars in the source formatting and checks for stale vars
+    String dumpVars();
 
     //return the content of a specific var. Returns empty string if error or var not found.
     String getVar(const String varName) const;
@@ -31,11 +31,16 @@ protected:
 
 private:
 
+    struct SVar{
+        String data;
+        uint64_t writeTime;
+    };
+
     //semaphore for data access
     SemaphoreHandle_t mMutex;
 
     //hold all the data as Strings in a map for easy access
-    std::map<String,String> mVars;
+    std::map<String,SVar> mVars;
 
     //holds the current state of the parser
     uint8_t mState;
@@ -52,6 +57,7 @@ private:
     //debug
     unsigned long timeTaken;
 
+    static const uint32_t DATA_TIMEOUT_MS = 5000;
 };
 
 

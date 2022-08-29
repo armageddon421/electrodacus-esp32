@@ -46,8 +46,18 @@ String JsvarStore::handleChar(const char &c)
         }
         else if(mCounter < 10) //max var name length is 10
         {
-            mVarName += c;
-            mCounter ++;
+             //filter for reasonable characters
+            if((c >= 'a' && c <= 'z') //lower case letters are most common, check first
+                || (c >= 'A' && c <= 'Z')
+                || (c >= '0' && c <= '9'))
+            {
+                mVarName += c;
+                mCounter ++;
+            }
+            else
+            {
+                reset();
+            }
         }
         else //error case
         {
@@ -90,16 +100,18 @@ String JsvarStore::handleChar(const char &c)
         {
             if(mVarName.charAt(0) != 'h') //special treatment of history download
             {
+                uint64_t time = millis();
                 if( xSemaphoreTake( mMutex, (TickType_t) 5 ) )
                 {
                     auto var = mVars.find(mVarName);
                     if(var == mVars.end())
                     {
-                        mVars.insert(std::pair<String,String>(String(mVarName), String(mVarContent))); //insert in our stored data
+                        mVars.insert(std::pair<String,SVar>(String(mVarName), {String(mVarContent), time})); //insert in our stored data
                     }
                     else
                     {
-                        var->second = String(mVarContent);
+                        var->second.data = String(mVarContent);
+                        var->second.writeTime = time;
                     }
                     xSemaphoreGive(mMutex);
                 }
@@ -120,24 +132,33 @@ String JsvarStore::handleChar(const char &c)
 }
 
 
-String JsvarStore::dumpVars() const
+String JsvarStore::dumpVars()
 {
     String dump((char*)0); //do not reserve anything at first
     dump.reserve(2000); //then reserve huge block, this should fit everything
 
+    uint64_t time = millis();
+
     if( xSemaphoreTake( mMutex, (TickType_t) 50 ) )
     {
-        auto it = mVars.cbegin();
-        while(it != mVars.cend())
+        auto it = mVars.begin();
+        while(it != mVars.end())
         {
-            //reconstruct the original line syntax (without temporary strings involved)
-            dump += "var ";
-            dump += it->first;
-            dump += "=";
-            dump += it->second;
-            dump += ";\r\n";
+            if(time - it->second.writeTime > DATA_TIMEOUT_MS)
+            {
+                it = mVars.erase(it); // erase stale variable
+            }
+            else
+            {
+                //reconstruct the original line syntax (without temporary strings involved)
+                dump += "var ";
+                dump += it->first;
+                dump += "=";
+                dump += it->second.data;
+                dump += ";\r\n";
 
-            ++it;
+                ++it;
+            }
         }
         xSemaphoreGive(mMutex);
     }
@@ -154,7 +175,7 @@ String JsvarStore::getVar(const String varName) const
         auto var = mVars.find(varName);
         if(var != mVars.cend())
         {
-            res = var->second; //return a copy of the data
+            res = var->second.data; //return a copy of the data
         }
         xSemaphoreGive(mMutex);
     }

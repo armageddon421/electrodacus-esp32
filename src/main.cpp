@@ -503,7 +503,7 @@ void otaUpdate()
 #define UART_RX_BUF 1024
 #define UART_TX_BUF 0
 #define UART_RES_STRLEN 10
-#define UART_RES_NUM_ELEMENTS 10
+#define UART_RES_NUM_ELEMENTS 14
 
 //queue for uart events
 static QueueHandle_t uart_queue;
