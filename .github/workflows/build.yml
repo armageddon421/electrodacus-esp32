@@ -22,3 +22,11 @@ jobs:
 
       - name: Build PlatformIO Project
         run: pio run
+      - name: Build PlatformIO Filesystem
+        run: pio run -t buildfs
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: firmware-binaries
+          path: |
+            .pio/**/*.bin
