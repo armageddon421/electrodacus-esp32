@@ -54,6 +54,10 @@ String JsvarStore::handleChar(const char &c)
                 mVarName += c;
                 mCounter ++;
             }
+            else if(c == ' ') //allow one space character at the end of the variable name
+            {
+                mCounter = 10;
+            }
             else
             {
                 reset();
